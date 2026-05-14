@@ -1,14 +1,23 @@
-import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ApiErrorAlert, ConfirmDialog, Button, EmptyState, InlineAlert } from '../components/common';
-import { DashboardStateBlock } from '../components/dashboard';
-import { StockAutocomplete } from '../components/StockAutocomplete';
-import { HistoryList } from '../components/history';
-import { ReportMarkdown, ReportSummary } from '../components/report';
-import { TaskPanel } from '../components/tasks';
-import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
-import { getReportText, normalizeReportLanguage } from '../utils/reportLanguage';
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ApiErrorAlert,
+  ConfirmDialog,
+  Button,
+  EmptyState,
+  InlineAlert,
+} from "../components/common";
+import { DashboardStateBlock } from "../components/dashboard";
+import { StockAutocomplete } from "../components/StockAutocomplete";
+import { HistoryList } from "../components/history";
+import { ReportMarkdown, ReportSummary } from "../components/report";
+import { TaskPanel } from "../components/tasks";
+import { useDashboardLifecycle, useHomeDashboardState } from "../hooks";
+import {
+  getReportText,
+  normalizeReportLanguage,
+} from "../utils/reportLanguage";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,9 +62,11 @@ const HomePage: React.FC = () => {
   } = useHomeDashboardState();
 
   useEffect(() => {
-    document.title = '每日选股分析 - DSA';
+    document.title = "每日选股分析 - DSA";
   }, []);
-  const reportLanguage = normalizeReportLanguage(selectedReport?.meta.reportLanguage);
+  const reportLanguage = normalizeReportLanguage(
+    selectedReport?.meta.reportLanguage,
+  );
   const reportText = getReportText(reportLanguage);
 
   useDashboardLifecycle({
@@ -67,22 +78,25 @@ const HomePage: React.FC = () => {
     removeTask,
   });
 
-  const handleHistoryItemClick = useCallback((recordId: number) => {
-    void selectHistoryItem(recordId);
-    setSidebarOpen(false);
-  }, [selectHistoryItem]);
+  const handleHistoryItemClick = useCallback(
+    (recordId: number) => {
+      void selectHistoryItem(recordId);
+      setSidebarOpen(false);
+    },
+    [selectHistoryItem],
+  );
 
   const handleSubmitAnalysis = useCallback(
     (
       stockCode?: string,
       stockName?: string,
-      selectionSource?: 'manual' | 'autocomplete' | 'import' | 'image',
+      selectionSource?: "manual" | "autocomplete" | "import" | "image",
     ) => {
       void submitAnalysis({
         stockCode,
         stockName,
         originalQuery: query,
-        selectionSource: selectionSource ?? 'manual',
+        selectionSource: selectionSource ?? "manual",
       });
     },
     [query, submitAnalysis],
@@ -96,7 +110,9 @@ const HomePage: React.FC = () => {
     const code = selectedReport.meta.stockCode;
     const name = selectedReport.meta.stockName;
     const rid = selectedReport.meta.id;
-    navigate(`/chat?stock=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&recordId=${rid}`);
+    navigate(
+      `/chat?stock=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&recordId=${rid}`,
+    );
   }, [navigate, selectedReport]);
 
   const handleReanalyze = useCallback(() => {
@@ -108,7 +124,7 @@ const HomePage: React.FC = () => {
       stockCode: selectedReport.meta.stockCode,
       stockName: selectedReport.meta.stockName,
       originalQuery: selectedReport.meta.stockCode,
-      selectionSource: 'manual',
+      selectionSource: "manual",
       forceRefresh: true,
     });
   }, [selectedReport, submitAnalysis]);
@@ -168,8 +184,18 @@ const HomePage: React.FC = () => {
               className="md:hidden -ml-1 flex-shrink-0 rounded-lg p-1.5 text-secondary-text transition-colors hover:bg-hover hover:text-foreground"
               aria-label="历史记录"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
             <div className="relative min-w-0 flex-1">
@@ -181,7 +207,7 @@ const HomePage: React.FC = () => {
                 }}
                 placeholder="输入股票代码或名称，如 600519、贵州茅台、AAPL"
                 disabled={isAnalyzing}
-                className={inputError ? 'border-danger/50' : undefined}
+                className={inputError ? "border-danger/50" : undefined}
               />
             </div>
             <label className="flex h-10 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-subtle bg-surface/60 px-3 text-xs text-secondary-text select-none transition-colors hover:border-subtle-hover hover:text-foreground">
@@ -201,14 +227,29 @@ const HomePage: React.FC = () => {
             >
               {isAnalyzing ? (
                 <>
-                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg
+                    className="h-3.5 w-3.5 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   分析中
                 </>
               ) : (
-                '分析'
+                "分析"
               )}
             </button>
           </div>
@@ -241,7 +282,10 @@ const HomePage: React.FC = () => {
           </div>
 
           {sidebarOpen ? (
-            <div className="fixed inset-0 z-40 md:hidden" onClick={() => setSidebarOpen(false)}>
+            <div
+              className="fixed inset-0 z-40 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
               <div className="page-drawer-overlay absolute inset-0" />
               <div
                 className="dashboard-card absolute bottom-0 left-0 top-0 flex w-72 flex-col overflow-hidden !rounded-none !rounded-r-xl p-3 shadow-2xl"
@@ -266,37 +310,72 @@ const HomePage: React.FC = () => {
               </div>
             ) : selectedReport ? (
               <div className="max-w-4xl space-y-4 pb-8">
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 md:gap-2 mb-3">
                   <Button
                     variant="home-action-ai"
                     size="sm"
-                    disabled={isAnalyzing || selectedReport.meta.id === undefined}
+                    className="shrink-0 whitespace-nowrap max-sm:text-xs max-sm:px-2 max-sm:h-8"
+                    disabled={
+                      isAnalyzing || selectedReport.meta.id === undefined
+                    }
                     onClick={handleReanalyze}
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      className="h-4 w-4 max-sm:h-3 max-sm:w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     {reportText.reanalyze}
                   </Button>
                   <Button
                     variant="home-action-ai"
                     size="sm"
+                    className="shrink-0 whitespace-nowrap max-sm:text-xs max-sm:px-2 max-sm:h-8"
                     disabled={selectedReport.meta.id === undefined}
                     onClick={handleAskFollowUp}
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <svg
+                      className="h-4 w-4 max-sm:h-3 max-sm:w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
                     </svg>
                     追问 AI
                   </Button>
                   <Button
                     variant="home-action-ai"
                     size="sm"
+                    className="shrink-0 whitespace-nowrap max-sm:text-xs max-sm:px-2 max-sm:h-8"
                     disabled={selectedReport.meta.id === undefined}
                     onClick={openMarkdownDrawer}
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className="h-4 w-4 max-sm:h-3 max-sm:w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     {reportText.fullReport}
                   </Button>
@@ -309,11 +388,21 @@ const HomePage: React.FC = () => {
                   title="开始分析"
                   description="输入股票代码进行分析，或从左侧选择历史报告查看。"
                   className="max-w-xl border-dashed"
-                  icon={(
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  icon={
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
                     </svg>
-                  )}
+                  }
                 />
               </div>
             )}
@@ -324,7 +413,7 @@ const HomePage: React.FC = () => {
       {markdownDrawerOpen && selectedReport?.meta.id ? (
         <ReportMarkdown
           recordId={selectedReport.meta.id}
-          stockName={selectedReport.meta.stockName || ''}
+          stockName={selectedReport.meta.stockName || ""}
           stockCode={selectedReport.meta.stockCode}
           reportLanguage={reportLanguage}
           onClose={closeMarkdownDrawer}
@@ -336,10 +425,10 @@ const HomePage: React.FC = () => {
         title="删除历史记录"
         message={
           selectedHistoryIds.length === 1
-            ? '确认删除这条历史记录吗？删除后将不可恢复。'
+            ? "确认删除这条历史记录吗？删除后将不可恢复。"
             : `确认删除选中的 ${selectedHistoryIds.length} 条历史记录吗？删除后将不可恢复。`
         }
-        confirmText={isDeletingHistory ? '删除中...' : '确认删除'}
+        confirmText={isDeletingHistory ? "删除中..." : "确认删除"}
         cancelText="取消"
         isDanger={true}
         onConfirm={handleDeleteSelectedHistory}

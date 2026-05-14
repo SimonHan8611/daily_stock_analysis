@@ -1,33 +1,43 @@
-import type React from 'react';
-import { useState, useEffect } from 'react';
+import type React from "react";
+import { useState, useEffect } from "react";
 import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
-import { Lock, Loader2, Cpu, TrendingUp, Network, ShieldCheck } from "lucide-react";
-import { Button, Input, ParticleBackground } from '../components/common';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { ParsedApiError } from '../api/error';
-import { isParsedApiError } from '../api/error';
-import { useAuth } from '../hooks';
-import { SettingsAlert } from '../components/settings';
+import {
+  Lock,
+  Loader2,
+  Cpu,
+  TrendingUp,
+  Network,
+  ShieldCheck,
+} from "lucide-react";
+import { Button, Input, ParticleBackground } from "../components/common";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import type { ParsedApiError } from "../api/error";
+import { isParsedApiError } from "../api/error";
+import { useAuth } from "../hooks";
+import { SettingsAlert } from "../components/settings";
 
 const LoginPage: React.FC = () => {
-  const { login, passwordSet, setupState } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   // Set page title
   useEffect(() => {
-    document.title = '登录 - DSA';
+    document.title = "登录 - DSA";
   }, []);
   const [searchParams] = useSearchParams();
-  const rawRedirect = searchParams.get('redirect') ?? '';
+  const rawRedirect = searchParams.get("redirect") ?? "";
   const redirect =
-    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/";
 
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | ParsedApiError | null>(null);
-
-  const isFirstTime = setupState === 'no_password' || !passwordSet;
 
   // 3D Tilt effect values
   const mouseX = useMotionValue(0);
@@ -51,17 +61,39 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (isFirstTime && password !== passwordConfirm) {
-      setError('两次输入的密码不一致');
-      return;
-    }
     setIsSubmitting(true);
+
     try {
-      const result = await login(password, isFirstTime ? passwordConfirm : undefined);
-      if (result.success) {
-        navigate(redirect, { replace: true });
+      if (isLoginMode) {
+        const result = await login(username, password);
+        if (result.success) {
+          navigate(redirect, { replace: true });
+        } else {
+          setError(result.error ?? "登录失败");
+        }
       } else {
-        setError(result.error ?? '登录失败');
+        if (password !== passwordConfirm) {
+          setError("两次输入的密码不一致");
+          setIsSubmitting(false);
+          return;
+        }
+        const result = await register(
+          username,
+          password,
+          passwordConfirm,
+          email,
+        );
+        if (result.success) {
+          // auto login after register
+          const loginResult = await login(username, password);
+          if (loginResult.success) {
+            navigate(redirect, { replace: true });
+          } else {
+            setError(loginResult.error ?? "注册成功，但自动登录失败");
+          }
+        } else {
+          setError(result.error ?? "注册失败");
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -116,15 +148,19 @@ const LoginPage: React.FC = () => {
 
           <div className="mt-8 flex flex-col items-center">
             <h2 className="text-4xl font-extrabold tracking-tighter text-[var(--login-text-primary)] sm:text-6xl">
-              <span className="bg-gradient-to-r from-[var(--login-text-primary)] via-[var(--login-text-primary)] to-[var(--login-text-secondary)] bg-clip-text text-transparent">DAILY </span>
-              <span className="bg-gradient-to-r from-[var(--login-brand-start)] to-[var(--login-brand-end)] bg-clip-text text-transparent drop-shadow-[0_0_20px_var(--login-accent-glow)]">STOCK</span>
+              <span className="bg-gradient-to-r from-[var(--login-text-primary)] via-[var(--login-text-primary)] to-[var(--login-text-secondary)] bg-clip-text text-transparent">
+                DAILY{" "}
+              </span>
+              <span className="bg-gradient-to-r from-[var(--login-brand-start)] to-[var(--login-brand-end)] bg-clip-text text-transparent drop-shadow-[0_0_20px_var(--login-accent-glow)]">
+                STOCK
+              </span>
             </h2>
             <h3 className="mt-1 text-xl font-bold uppercase tracking-[0.5em] text-[var(--login-text-muted)]">
               Analysis Engine
             </h3>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -151,43 +187,75 @@ const LoginPage: React.FC = () => {
 
             <div className="mb-8">
               <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--login-text-primary)]">
-                {isFirstTime ? (
+                {!isLoginMode ? (
                   <>
                     <ShieldCheck className="h-6 w-6 text-emerald-400" />
-                    <span>设置初始密码</span>
+                    <span>注册账号</span>
                   </>
                 ) : (
                   <>
                     <Lock className="h-5 w-5 text-[var(--login-accent-text)]" />
-                    <span>管理员登录</span>
+                    <span>系统登录</span>
                   </>
                 )}
               </h1>
               <p className="mt-2 text-sm text-[var(--login-text-secondary)]">
-                {isFirstTime
-                  ? '首次启用认证，请为系统工作台设置管理员密码。'
-                  : '访问 DSA 量化决策引擎需要有效的身份凭证。'}
+                {!isLoginMode
+                  ? "注册新用户以使用 DSA 决策引擎。首个注册用户将自动成为管理员。"
+                  : "访问 DSA 量化决策引擎需要有效的身份凭证。"}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <Input
+                  id="username"
+                  type="text"
+                  appearance="login"
+                  label="用户名"
+                  placeholder="请输入用户名"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isSubmitting}
+                  autoFocus
+                  autoComplete="username"
+                  required
+                />
+
+                {!isLoginMode && (
+                  <Input
+                    id="email"
+                    type="email"
+                    appearance="login"
+                    label="邮箱 (可选)"
+                    placeholder="请输入邮箱地址"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
+                    autoComplete="email"
+                  />
+                )}
+
+                <Input
                   id="password"
                   type="password"
                   appearance="login"
                   allowTogglePassword
                   iconType="password"
-                  label={isFirstTime ? '管理员密码' : '登录密码'}
-                  placeholder={isFirstTime ? '请设置 6 位以上密码' : '请输入密码'}
+                  label="登录密码"
+                  placeholder={
+                    !isLoginMode ? "请设置 6 位以上密码" : "请输入密码"
+                  }
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isSubmitting}
-                  autoFocus
-                  autoComplete={isFirstTime ? 'new-password' : 'current-password'}
+                  autoComplete={
+                    !isLoginMode ? "new-password" : "current-password"
+                  }
+                  required
                 />
 
-                {isFirstTime && (
+                {!isLoginMode && (
                   <Input
                     id="passwordConfirm"
                     type="password"
@@ -195,11 +263,12 @@ const LoginPage: React.FC = () => {
                     allowTogglePassword
                     iconType="password"
                     label="确认密码"
-                    placeholder="再次确认管理员密码"
+                    placeholder="再次确认登录密码"
                     value={passwordConfirm}
                     onChange={(e) => setPasswordConfirm(e.target.value)}
                     disabled={isSubmitting}
                     autoComplete="new-password"
+                    required
                   />
                 )}
               </div>
@@ -207,11 +276,11 @@ const LoginPage: React.FC = () => {
               {error && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   className="overflow-hidden"
                 >
                   <SettingsAlert
-                    title={isFirstTime ? '配置失败' : '验证未通过'}
+                    title={!isLoginMode ? "注册失败" : "验证未通过"}
                     message={isParsedApiError(error) ? error.message : error}
                     variant="error"
                     className="!border-[var(--login-error-border)] !bg-[var(--login-error-bg)] !text-[var(--login-error-text)]"
@@ -230,20 +299,50 @@ const LoginPage: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{isFirstTime ? '初始化中...' : '正在建立连接...'}</span>
+                      <span>正在处理...</span>
                     </>
                   ) : (
-                    <span>{isFirstTime ? '完成设置并登录' : '授权进入工作台'}</span>
+                    <span>
+                      {!isLoginMode ? "完成注册并登录" : "授权进入工作台"}
+                    </span>
                   )}
                 </div>
                 <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
               </Button>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoginMode(!isLoginMode);
+                    setError(null);
+                  }}
+                  className="group/link text-sm cursor-pointer text-[var(--login-text-secondary)] transition-colors"
+                  disabled={isSubmitting}
+                >
+                  {isLoginMode ? (
+                    <>
+                      没有账号？
+                      <span className="text-[var(--login-accent-text)] group-hover/link:text-[var(--login-brand-start)] group-hover/link:underline">
+                        点击注册
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      已有账号？
+                      <span className="text-[var(--login-accent-text)] group-hover/link:text-[var(--login-brand-start)] group-hover/link:underline">
+                        返回登录
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </motion.div>
 
         {/* Footer info */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
@@ -253,13 +352,17 @@ const LoginPage: React.FC = () => {
         </motion.p>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes shimmer {
           100% {
             transform: translateX(100%);
           }
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 };

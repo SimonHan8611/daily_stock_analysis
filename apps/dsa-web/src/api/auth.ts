@@ -3,9 +3,16 @@ import apiClient from './index';
 export type AuthStatusResponse = {
   authEnabled: boolean;
   loggedIn: boolean;
-  passwordSet?: boolean;
-  passwordChangeable?: boolean;
-  setupState: 'enabled' | 'password_retained' | 'no_password';
+  role?: string;
+  username?: string;
+};
+
+export type UserInfoResponse = {
+  id: number;
+  username: string;
+  email: string | null;
+  role: string;
+  is_active: boolean;
 };
 
 export const authApi = {
@@ -14,49 +21,22 @@ export const authApi = {
     return data;
   },
 
-  async updateSettings(
-    authEnabled: boolean,
-    password?: string,
-    passwordConfirm?: string,
-    currentPassword?: string
-  ): Promise<AuthStatusResponse> {
-    const body: {
-      authEnabled: boolean;
-      password?: string;
-      passwordConfirm?: string;
-      currentPassword?: string;
-    } = { authEnabled };
-    if (password !== undefined) {
-      body.password = password;
-    }
-    if (passwordConfirm !== undefined) {
-      body.passwordConfirm = passwordConfirm;
-    }
-    if (currentPassword !== undefined) {
-      body.currentPassword = currentPassword;
-    }
-    const { data } = await apiClient.post<AuthStatusResponse>('/api/v1/auth/settings', body);
-    return data;
+  async login(username: string, password: string): Promise<void> {
+    await apiClient.post('/api/v1/auth/login', { username, password });
   },
 
-  async login(password: string, passwordConfirm?: string): Promise<void> {
-    const body: { password: string; passwordConfirm?: string } = { password };
-    if (passwordConfirm !== undefined) {
-      body.passwordConfirm = passwordConfirm;
-    }
-    await apiClient.post('/api/v1/auth/login', body);
-  },
-
-  async changePassword(
-    currentPassword: string,
-    newPassword: string,
-    newPasswordConfirm: string
-  ): Promise<void> {
-    await apiClient.post('/api/v1/auth/change-password', {
-      currentPassword,
-      newPassword,
-      newPasswordConfirm,
+  async register(username: string, password: string, passwordConfirm: string, email?: string): Promise<void> {
+    await apiClient.post('/api/v1/auth/register', { 
+      username, 
+      password, 
+      passwordConfirm,
+      email
     });
+  },
+
+  async getMe(): Promise<UserInfoResponse> {
+    const { data } = await apiClient.get<UserInfoResponse>('/api/v1/auth/me');
+    return data;
   },
 
   async logout(): Promise<void> {

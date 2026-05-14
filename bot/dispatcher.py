@@ -266,6 +266,33 @@ class CommandDispatcher:
                 f"请求过于频繁，请 {remaining_time} 秒后再试"
             )
 
+        # Auto-bind or resolve UserSocialBinding
+        from src.storage import DatabaseManager, UserSocialBinding, User, Role
+        from sqlalchemy import select
+        
+        db = DatabaseManager.get_instance()
+        with db.get_session() as session:
+            binding = session.execute(
+                select(UserSocialBinding)
+                .where(
+                    UserSocialBinding.platform == message.platform,
+                    UserSocialBinding.platform_user_id == message.user_id
+                )
+            ).scalar_one_or_none()
+            
+            internal_user_id = None
+            if binding:
+                internal_user_id = binding.user_id
+            else:
+                # Optional auto-registration logic could go here. 
+                # For now, we will assign a guest or ignore, but to support isolation 
+                # properly we should ideally map this. Let's look for a generic "bot_user" 
+                # or create an anonymous binding.
+                pass
+                
+            # Attach internal user_id to message for commands to use
+            setattr(message, "internal_user_id", internal_user_id)
+
         cmd_name, args = message.get_command_and_args(self.command_prefix)
         if cmd_name is None:
             return None, args, None, None

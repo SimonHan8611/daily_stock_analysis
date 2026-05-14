@@ -48,6 +48,7 @@ from sqlalchemy.orm import (
     declarative_base,
     sessionmaker,
     Session,
+    relationship,
 )
 from sqlalchemy.exc import IntegrityError, OperationalError
 
@@ -64,6 +65,86 @@ if TYPE_CHECKING:
 
 
 # === 数据模型定义 ===
+
+class Role(Base):
+    """
+    角色模型 (RBAC)
+    
+    定义系统中的角色，如 admin, user, guest。
+    """
+    __tablename__ = 'roles'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), nullable=False, unique=True, index=True)
+    description = Column(String(255))
+    
+    # 标识是否为系统内置角色（如 admin），系统角色不允许被用户删除
+    is_system = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def __repr__(self):
+        return f"<Role(name={self.name})>"
+
+
+class User(Base):
+    """
+    用户模型
+    
+    用于 Web 端登录认证及数据隔离。
+    """
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), nullable=False, unique=True, index=True)
+    email = Column(String(255), unique=True, index=True)
+    
+    # 密码哈希 (使用 bcrypt 等算法)
+    password_hash = Column(String(255), nullable=False)
+    
+    # 外键：角色ID
+    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
+    
+    # 关联
+    role = relationship("Role")
+    
+    # 账号状态：启用/禁用
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<User(username={self.username}, role_id={self.role_id})>"
+
+
+class UserSocialBinding(Base):
+    """
+    用户社交账号绑定模型
+    
+    用于将机器人平台的外部用户 ID (如飞书、Telegram ID) 与系统内部用户关联起来。
+    """
+    __tablename__ = 'user_social_bindings'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # 外键：内部用户 ID
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    # 平台名称，例如 "feishu", "telegram", "wechat"
+    platform = Column(String(20), nullable=False)
+    
+    # 平台方的用户唯一标识
+    platform_user_id = Column(String(128), nullable=False, index=True)
+    
+    created_at = Column(DateTime, default=datetime.now)
+    
+    # 唯一约束：一个平台的一个外部ID只能绑定一个内部用户
+    __table_args__ = (
+        UniqueConstraint('platform', 'platform_user_id', name='uix_platform_user_id'),
+    )
+
 
 class StockDaily(Base):
     """
@@ -402,7 +483,7 @@ class PortfolioAccount(Base):
     __tablename__ = 'portfolio_accounts'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    owner_id = Column(String(64), index=True)
+    owner_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=True)  # nullable for backward compatibility during migration
     name = Column(String(64), nullable=False)
     broker = Column(String(64))
     market = Column(String(8), nullable=False, default='cn', index=True)  # cn/hk/us
@@ -644,6 +725,69 @@ class DatabaseManager:
             cls._instance._initialized = False
         return cls._instance
     
+    @staticmethod
+    def ensure_default_roles_and_admin(session: Session) -> None:
+        """
+        Ensure default 'admin' and 'user' roles exist.
+        If no users exist but a legacy `.admin_password_hash` file is found,
+        create the first Admin user and migrate legacy PortfolioAccounts.
+        """
+        try:
+            admin_role = session.execute(select(Role).where(Role.name == 'admin')).scalar_one_or_none()
+            if not admin_role:
+                admin_role = Role(name='admin', description='System Administrator', is_system=True)
+                session.add(admin_role)
+
+            user_role = session.execute(select(Role).where(Role.name == 'user')).scalar_one_or_none()
+            if not user_role:
+                user_role = Role(name='user', description='Standard User', is_system=True)
+                session.add(user_role)
+
+            session.commit()
+
+            # Check if any user exists
+            user_count = session.execute(select(func.count(User.id))).scalar()
+            if user_count == 0:
+                # Check for legacy password hash
+                from src.auth import _get_credential_path, _parse_password_hash
+                import base64
+                
+                cred_path = _get_credential_path()
+                if cred_path.exists():
+                    raw = cred_path.read_text().strip()
+                    parsed = _parse_password_hash(raw)
+                    if parsed:
+                        # Since we are moving to bcrypt, the legacy PBKDF2 hash isn't directly compatible 
+                        # with passlib[bcrypt]. For the migration, we will generate a random bcrypt password 
+                        # and log a warning to the console, OR we can store a specific prefix to indicate a legacy hash.
+                        # For simplicity and security, we'll store a placeholder and require the admin to reset it via CLI 
+                        # or we can write a custom passlib context. 
+                        # Let's use a dummy hash and print a warning. The admin should use the CLI to reset it.
+                        logger.warning("Legacy .admin_password_hash found, but it uses PBKDF2. A default admin user 'admin' has been created.")
+                        logger.warning("Please run `python main.py --reset-password` to set a new bcrypt password for the admin account.")
+                        
+                        admin_user = User(
+                            username='admin',
+                            email='admin@localhost',
+                            password_hash='$2b$12$dummyhashforlegacypasswordmigrationpleaseresetit123', # Dummy invalid bcrypt hash
+                            role_id=admin_role.id,
+                            is_active=True
+                        )
+                        session.add(admin_user)
+                        session.commit()
+                        session.refresh(admin_user)
+                        
+                        # Migrate legacy PortfolioAccounts (where owner_id is string or null)
+                        session.execute(
+                            PortfolioAccount.__table__.update().values(owner_id=admin_user.id)
+                        )
+                        session.commit()
+                        logger.info("Migrated legacy PortfolioAccounts to the new Admin user.")
+                        
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to initialize default roles and admin: {e}")
+
     def __init__(self, db_url: Optional[str] = None):
         """
         初始化数据库管理器
@@ -691,9 +835,13 @@ class DatabaseManager:
         
         # 创建所有表
         Base.metadata.create_all(self._engine)
-
+        
         self._initialized = True
         logger.info(f"数据库初始化完成: {db_url}")
+
+        # 初始化默认角色和管理员（数据迁移）
+        with self.get_session() as session:
+            self.ensure_default_roles_and_admin(session)
 
         # 注册退出钩子，确保程序退出时关闭数据库连接
         atexit.register(DatabaseManager._cleanup_engine, self._engine)

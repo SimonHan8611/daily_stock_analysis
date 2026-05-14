@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Auth middleware: protect /api/v1/* when admin auth is enabled.
+Auth middleware: protect /api/v1/* and inject user info into request.state.
 """
 
 from __future__ import annotations
@@ -12,12 +12,14 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.auth import COOKIE_NAME, is_auth_enabled, verify_session
+from src.auth import COOKIE_NAME, is_auth_enabled
+from src.services.auth_service import decode_access_token
 
 logger = logging.getLogger(__name__)
 
 EXEMPT_PATHS = frozenset({
     "/api/v1/auth/login",
+    "/api/v1/auth/register",
     "/api/v1/auth/status",
     "/api/health",
     "/health",
@@ -34,25 +36,49 @@ def _path_exempt(path: str) -> bool:
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Require valid session for /api/v1/* when auth is enabled."""
+    """Require valid JWT session for /api/v1/* and inject user data."""
 
     async def dispatch(
         self,
         request: Request,
         call_next: Callable,
     ):
-        if not is_auth_enabled():
-            return await call_next(request)
+        # Always initialize user context
+        request.state.user_id = None
+        request.state.role = None
+        request.state.username = None
 
         path = request.url.path
+        
+        # Try to extract user from cookie regardless of exemption (useful for /auth/status)
+        cookie_val = request.cookies.get(COOKIE_NAME)
+        if cookie_val:
+            payload = decode_access_token(cookie_val)
+            if payload:
+                request.state.user_id = payload.get("sub")
+                request.state.role = payload.get("role")
+                request.state.username = payload.get("username")
+                logger.debug(f"[AuthMiddleware] Parsed JWT. user_id={request.state.user_id}, role={request.state.role}")
+            else:
+                logger.warning(f"[AuthMiddleware] Found '{COOKIE_NAME}' but failed to decode/validate JWT.")
+        else:
+            if path.startswith("/api/v1/") and not _path_exempt(path):
+                logger.warning(f"[AuthMiddleware] Missing '{COOKIE_NAME}' cookie for protected path: {path}")
+
+        if not is_auth_enabled():
+            # If auth is disabled globally via env, we don't enforce blocking,
+            # but we still parsed the user if they had a cookie.
+            return await call_next(request)
+
         if _path_exempt(path):
             return await call_next(request)
 
         if not path.startswith("/api/v1/"):
             return await call_next(request)
 
-        cookie_val = request.cookies.get(COOKIE_NAME)
-        if not cookie_val or not verify_session(cookie_val):
+        # If it's an API route and we didn't find a valid user_id
+        if not request.state.user_id:
+            logger.warning(f"[AuthMiddleware] Rejecting request to '{path}': No valid user context.")
             return JSONResponse(
                 status_code=401,
                 content={

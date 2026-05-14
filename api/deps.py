@@ -10,9 +10,9 @@ API 依赖注入模块
 3. 提供服务层依赖
 """
 
-from typing import Generator
+from typing import Generator, Callable
 
-from fastapi import Request
+from fastapi import Request, HTTPException
 from sqlalchemy.orm import Session
 
 from src.storage import DatabaseManager
@@ -69,3 +69,47 @@ def get_system_config_service(request: Request) -> SystemConfigService:
         service = SystemConfigService()
         request.app.state.system_config_service = service
     return service
+
+
+def get_current_user(request: Request) -> dict:
+    """
+    Get current user information from request state.
+    Returns a dict with user_id, role, and username.
+    Raises 401 if user is not authenticated.
+    """
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    return {
+        "user_id": user_id,
+        "role": getattr(request.state, "role", None),
+        "username": getattr(request.state, "username", None)
+    }
+
+def require_role(allowed_roles: list[str]) -> Callable:
+    """
+    Dependency generator to restrict access to specific roles.
+    
+    Usage:
+        @router.get("/admin-only")
+        async def admin_route(user: dict = Depends(require_role(["admin"]))):
+            ...
+    """
+    def role_checker(request: Request) -> dict:
+        user_id = getattr(request.state, "user_id", None)
+        role = getattr(request.state, "role", None)
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+            
+        if role not in allowed_roles:
+            raise HTTPException(status_code=403, detail="Forbidden: insufficient permissions")
+            
+        return {
+            "user_id": user_id,
+            "role": role,
+            "username": getattr(request.state, "username", None)
+        }
+        
+    return role_checker
