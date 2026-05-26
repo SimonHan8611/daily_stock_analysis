@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge as MantineBadge } from '@mantine/core';
 import { cn } from '../../utils/cn';
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'history';
@@ -45,9 +46,12 @@ export const Badge: React.FC<BadgeProps> = ({
   const sizeStyles = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
 
   return (
-    <span
+    <MantineBadge
+      component="span"
       {...rest}
       style={style}
+      radius="xl"
+      variant="light"
       className={cn(
         'inline-flex items-center gap-1 rounded-full border font-medium backdrop-blur-sm',
         sizeStyles,
@@ -57,6 +61,6 @@ export const Badge: React.FC<BadgeProps> = ({
       )}
     >
       {children}
-    </span>
+    </MantineBadge>
   );
 };

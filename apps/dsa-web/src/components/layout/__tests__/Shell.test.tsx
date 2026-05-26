@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '../../theme/ThemeProvider';
@@ -35,7 +35,7 @@ beforeAll(() => {
 });
 
 describe('Shell', () => {
-  it.skip('renders navigation, theme toggle and completion badge', () => {
+  it('renders navigation, theme toggle and completion badge', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
         <ThemeProvider>
@@ -47,14 +47,13 @@ describe('Shell', () => {
     );
 
     expect(screen.getAllByRole('button', { name: '切换主题' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: '问股' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Agent 问股' })).toBeInTheDocument();
     expect(screen.getByTestId('chat-completion-badge')).toBeInTheDocument();
     const logoutButton = screen.getByRole('button', { name: '退出' });
     expect(logoutButton).toBeInTheDocument();
-    expect(logoutButton).toHaveClass('cursor-pointer');
   });
 
-  it.skip('opens the theme menu from the sidebar toggle', async () => {
+  it('does not render an extra desktop page header', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
         <ThemeProvider>
@@ -65,9 +64,28 @@ describe('Shell', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: '切换主题' })[0]);
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByRole('menu', { name: '主题模式' })).toBeInTheDocument();
+  it('opens the mobile drawer and closes it after navigation selection', async () => {
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <ThemeProvider>
+          <Shell>
+            <div>page content</div>
+          </Shell>
+        </ThemeProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+
+    expect(await screen.findByText('导航菜单')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('link', { name: '系统设置' })[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByText('导航菜单')).not.toBeInTheDocument();
+    });
   });
 
   it('shows a confirmation dialog before logout', async () => {

@@ -1,13 +1,21 @@
-import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import type { ReportDetails as ReportDetailsType, ReportLanguage } from '../../types/analysis';
-import { Card } from '../common';
-import { DashboardPanelHeader } from '../dashboard';
-import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
+import { ChevronDown } from "lucide-react";
+import type {
+  ReportDetails as ReportDetailsType,
+  ReportLanguage,
+} from "../../types/analysis";
+import { Card } from "../common";
+import { DashboardPanelHeader } from "../dashboard";
+import {
+  getReportText,
+  normalizeReportLanguage,
+} from "../../utils/reportLanguage";
 
 interface ReportDetailsProps {
   details?: ReportDetailsType;
-  recordId?: number;  // 分析历史记录主键 ID
+  recordId?: number; // 分析历史记录主键 ID
   language?: ReportLanguage;
 }
 
@@ -17,9 +25,9 @@ interface ReportDetailsProps {
 export const ReportDetails: React.FC<ReportDetailsProps> = ({
   details,
   recordId,
-  language = 'zh',
+  language = "zh",
 }) => {
-  type JsonPanel = 'raw' | 'snapshot';
+  type JsonPanel = "raw" | "snapshot";
   type CopiedPanelState = Record<JsonPanel, boolean>;
 
   const reportLanguage = normalizeReportLanguage(language);
@@ -66,15 +74,19 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({
         delete copyResetTimerRef.current[panel];
       }, 2000);
     } catch (err) {
-      console.error('Copy failed:', err);
+      console.error("Copy failed:", err);
     }
   };
 
   const renderJson = (data: unknown, panel: JsonPanel) => {
     const jsonStr = JSON.stringify(data, null, 2);
     return (
-      <div className="relative overflow-hidden">
-        <span className="absolute top-2 right-2 z-10 inline-flex">
+      <Paper
+        radius="lg"
+        shadow="none"
+        className="relative overflow-hidden border border-subtle bg-base/70"
+      >
+        <span className="absolute right-2 top-2 z-10 inline-flex">
           <button
             type="button"
             onClick={() => copyToClipboard(jsonStr, panel)}
@@ -84,10 +96,12 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({
             {copiedPanels[panel] ? text.copied : text.copy}
           </button>
         </span>
-        <pre className="home-trace-pre home-trace-pre-content text-xs text-foreground font-mono overflow-x-auto p-3 bg-base rounded-lg max-h-80 overflow-y-auto text-left w-0 min-w-full">
-          {jsonStr}
-        </pre>
-      </div>
+        <ScrollArea.Autosize mah={320}>
+          <pre className="home-trace-pre home-trace-pre-content w-0 min-w-full overflow-x-auto bg-base p-3 text-left font-mono text-xs text-foreground">
+            {jsonStr}
+          </pre>
+        </ScrollArea.Autosize>
+      </Paper>
     );
   };
 
@@ -101,16 +115,20 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({
 
       {/* Record ID */}
       {recordId && (
-        <div className="home-divider mb-3 flex items-center gap-2 border-b pb-3 text-xs text-muted-text">
-          <span>{text.recordId}:</span>
+        <Group
+          gap="xs"
+          className="home-divider mb-3 border-b pb-3 text-xs text-muted-text"
+          wrap="wrap"
+        >
+          <Text className="text-xs text-muted-text">{text.recordId}:</Text>
           <code className="home-accent-chip px-1.5 py-0.5 font-mono text-xs">
             {recordId}
           </code>
-        </div>
+        </Group>
       )}
 
       {/* 折叠区域 */}
-      <div className="space-y-2">
+      <Stack gap="sm">
         {/* 原始分析结果 */}
         {details?.rawResult && (
           <div>
@@ -119,19 +137,16 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({
               onClick={() => setShowRaw(!showRaw)}
               className="home-surface-button home-trace-toggle flex w-full items-center justify-between rounded-lg p-2.5"
             >
-              <span className="text-xs text-foreground">{text.rawResult}</span>
-              <svg
-                className={`w-3.5 h-3.5 text-muted-text transition-transform ${showRaw ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <Text className="text-xs text-foreground">{text.rawResult}</Text>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-muted-text transition-transform ${showRaw ? "rotate-180" : ""}`}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
             </button>
             {showRaw && (
               <div className="mt-2 animate-fade-in min-w-0 overflow-hidden">
-                {renderJson(details.rawResult, 'raw')}
+                {renderJson(details.rawResult, "raw")}
               </div>
             )}
           </div>
@@ -145,24 +160,23 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({
               onClick={() => setShowSnapshot(!showSnapshot)}
               className="home-surface-button home-trace-toggle flex w-full items-center justify-between rounded-lg p-2.5"
             >
-              <span className="text-xs text-foreground">{text.analysisSnapshot}</span>
-              <svg
-                className={`w-3.5 h-3.5 text-muted-text transition-transform ${showSnapshot ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <Text className="text-xs text-foreground">
+                {text.analysisSnapshot}
+              </Text>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-muted-text transition-transform ${showSnapshot ? "rotate-180" : ""}`}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
             </button>
             {showSnapshot && (
               <div className="mt-2 animate-fade-in min-w-0 overflow-hidden">
-                {renderJson(details.contextSnapshot, 'snapshot')}
+                {renderJson(details.contextSnapshot, "snapshot")}
               </div>
             )}
           </div>
         )}
-      </div>
+      </Stack>
     </Card>
   );
 };

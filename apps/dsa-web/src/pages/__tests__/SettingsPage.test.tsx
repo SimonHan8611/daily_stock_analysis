@@ -73,8 +73,14 @@ vi.mock('../../utils/constants', async () => {
 });
 
 vi.mock('../../components/settings', () => ({
-  AuthSettingsCard: () => <div>认证与登录保护</div>,
-  ChangePasswordCard: () => <div>修改密码</div>,
+  AccountSecurityCard: () => (
+    <section>
+      <h2>账号安全</h2>
+      <div>认证与登录保护</div>
+      <div>修改密码</div>
+    </section>
+  ),
+  UserManagementCard: () => <div>用户管理</div>,
   IntelligentImport: ({ onMerged }: { onMerged: (value: string) => void }) => (
     <button type="button" onClick={() => onMerged('SZ000001,SZ000002')}>
       merge stock list
@@ -394,12 +400,11 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    const section = (await screen.findByRole('heading', { name: '版本信息' })).closest('section');
-    const versionGrid = section?.querySelector('div.grid.grid-cols-1.gap-3');
-
+    await screen.findByRole('heading', { name: '版本信息' });
     expect(screen.queryByText('桌面端版本')).not.toBeInTheDocument();
-    expect(versionGrid).toHaveClass('md:grid-cols-3');
-    expect(versionGrid).not.toHaveClass('md:grid-cols-4');
+    expect(screen.getByText('WebUI 版本')).toBeInTheDocument();
+    expect(screen.getByText('构建标识')).toBeInTheDocument();
+    expect(screen.getByText('构建时间')).toBeInTheDocument();
   });
 
   it('ignores non-string desktop runtime version values without breaking render', async () => {
@@ -407,11 +412,9 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    const section = (await screen.findByRole('heading', { name: '版本信息' })).closest('section');
-    const versionGrid = section?.querySelector('div.grid.grid-cols-1.gap-3');
-
+    await screen.findByRole('heading', { name: '版本信息' });
     expect(screen.queryByText('桌面端版本')).not.toBeInTheDocument();
-    expect(versionGrid).toHaveClass('md:grid-cols-3');
+    expect(screen.getByText('WebUI 版本')).toBeInTheDocument();
   });
 
   it('normalizes malformed desktop update payloads instead of throwing', async () => {

@@ -12,6 +12,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mantine/core": "^9.2.1",
+    "@mantine/hooks": "^9.2.1",
+    "@mantine/notifications": "^9.2.1",
     "@remixicon/react": "^4.9.0",
     "axios": "^1.13.4",
     "camelcase-keys": "^10.0.2",

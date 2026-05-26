@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Alert, Badge, Group, Loader, Paper, ScrollArea, Stack, Table, Text } from "@mantine/core";
 import { SettingsSectionCard } from "./SettingsSectionCard";
 import { Button } from "../common/Button";
 import { StatusDot } from "../common/StatusDot";
@@ -57,49 +58,55 @@ export const UserManagementCard: React.FC = () => {
       title="用户管理"
       description="管理系统注册用户及账号状态"
     >
-      <div className="space-y-4">
+      <Stack gap="md">
         {loading ? (
-          <div className="text-sm text-secondary-text">加载中...</div>
+          <Group justify="center" py="md">
+            <Loader size="sm" />
+            <Text className="text-sm text-secondary-text">加载中...</Text>
+          </Group>
         ) : error ? (
-          <div className="text-sm text-red-500">{error}</div>
+          <Alert color="red" variant="light" radius="xl">
+            {error}
+          </Alert>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border/50 text-secondary-text">
-                <tr>
-                  <th className="pb-2 font-medium">ID</th>
-                  <th className="pb-2 font-medium">用户名</th>
-                  <th className="pb-2 font-medium">角色</th>
-                  <th className="pb-2 font-medium">状态</th>
-                  <th className="pb-2 font-medium text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
+          <Paper radius="xl" withBorder p={0} shadow="none">
+            <ScrollArea>
+              <Table highlightOnHover striped={false} verticalSpacing="md" horizontalSpacing="md">
+                <Table.Thead>
+                  <Table.Tr className="text-secondary-text">
+                    <Table.Th>ID</Table.Th>
+                    <Table.Th>用户名</Table.Th>
+                    <Table.Th>角色</Table.Th>
+                    <Table.Th>状态</Table.Th>
+                    <Table.Th style={{ textAlign: "right" }}>操作</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
                 {users.map((user) => (
-                  <tr
+                  <Table.Tr
                     key={user.id}
                     className="group transition-colors hover:bg-hover/50"
                   >
-                    <td className="py-3 text-secondary-text">#{user.id}</td>
-                    <td className="py-3 font-medium text-foreground">
+                    <Table.Td className="text-secondary-text">#{user.id}</Table.Td>
+                    <Table.Td className="font-medium text-foreground">
                       {user.username}
-                    </td>
-                    <td className="py-3">
-                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-text">
+                    </Table.Td>
+                    <Table.Td>
+                      <Badge variant="light" radius="xl">
                         {user.role}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
                         <StatusDot
                           tone={user.is_active ? "success" : "neutral"}
                         />
-                        <span className="text-secondary-text">
+                        <Text className="text-secondary-text">
                           {user.is_active ? "正常" : "禁用"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-right">
+                        </Text>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td style={{ textAlign: "right" }}>
                       {user.role !== "admin" && (
                         <Button
                           variant="ghost"
@@ -109,14 +116,15 @@ export const UserManagementCard: React.FC = () => {
                           {user.is_active ? "禁用" : "启用"}
                         </Button>
                       )}
-                    </td>
-                  </tr>
+                    </Table.Td>
+                  </Table.Tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </Table.Tbody>
+              </Table>
+            </ScrollArea>
+          </Paper>
         )}
-      </div>
+      </Stack>
     </SettingsSectionCard>
   );
 };

@@ -1,15 +1,20 @@
-import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
-import type { ParsedApiError } from '../../api/error';
-import { getParsedApiError } from '../../api/error';
-import { ApiErrorAlert, Card } from '../common';
-import { DashboardPanelHeader, DashboardStateBlock } from '../dashboard';
-import { historyApi } from '../../api/history';
-import type { NewsIntelItem, ReportLanguage } from '../../types/analysis';
-import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
+import type React from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Anchor, Group, Loader, Paper, Stack, Text } from "@mantine/core";
+import { ExternalLink, Newspaper } from "lucide-react";
+import type { ParsedApiError } from "../../api/error";
+import { getParsedApiError } from "../../api/error";
+import { ApiErrorAlert, Card } from "../common";
+import { DashboardPanelHeader, DashboardStateBlock } from "../dashboard";
+import { historyApi } from "../../api/history";
+import type { NewsIntelItem, ReportLanguage } from "../../types/analysis";
+import {
+  getReportText,
+  normalizeReportLanguage,
+} from "../../utils/reportLanguage";
 
 interface ReportNewsProps {
-  recordId?: number;  // 分析历史记录主键 ID
+  recordId?: number; // 分析历史记录主键 ID
   limit?: number;
   language?: ReportLanguage;
 }
@@ -17,7 +22,11 @@ interface ReportNewsProps {
 /**
  * 资讯区组件 - 终端风格
  */
-export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, language = 'zh' }) => {
+export const ReportNews: React.FC<ReportNewsProps> = ({
+  recordId,
+  limit = 8,
+  language = "zh",
+}) => {
   const reportLanguage = normalizeReportLanguage(language);
   const text = getReportText(reportLanguage);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,10 +66,10 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
       <DashboardPanelHeader
         eyebrow={text.newsFeed}
         title={text.relatedNews}
-        actions={(
-          <div className="flex items-center gap-2">
+        actions={
+          <Group gap="xs" wrap="nowrap">
             {isLoading ? (
-              <div className="home-spinner h-3.5 w-3.5 animate-spin border-2" aria-hidden="true" />
+              <Loader size="xs" color="cyan" aria-hidden="true" />
             ) : null}
             <button
               type="button"
@@ -70,8 +79,8 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
             >
               {text.refresh}
             </button>
-          </div>
-        )}
+          </Group>
+        }
       />
 
       {error && !isLoading && (
@@ -84,11 +93,7 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
       )}
 
       {isLoading && !error && (
-        <DashboardStateBlock
-          compact
-          loading
-          title={text.loadingNews}
-        />
+        <DashboardStateBlock compact loading title={text.loadingNews} />
       )}
 
       {!isLoading && !error && items.length === 0 && (
@@ -96,56 +101,62 @@ export const ReportNews: React.FC<ReportNewsProps> = ({ recordId, limit = 8, lan
           compact
           title={text.noNews}
           description={text.noNewsDescription}
-          icon={(
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7-7m0 0l-7 7m7-7v18" />
-            </svg>
-          )}
+          icon={
+            <Newspaper
+              className="h-4 w-4"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+          }
         />
       )}
 
       {!isLoading && !error && items.length > 0 && (
-        <div className="space-y-3 text-left">
+        <Stack gap="sm" className="text-left">
           {items.map((item, index) => (
-            <div
+            <Paper
               key={`${item.title}-${index}`}
               className="home-subpanel home-news-item group p-4"
+              radius="lg"
+              shadow="none"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="home-news-title text-sm font-medium leading-6 text-foreground text-left">
+              <Group
+                align="flex-start"
+                justify="space-between"
+                gap="md"
+                wrap="nowrap"
+              >
+                <div className="min-w-0 flex-1 text-left">
+                  <Text className="home-news-title text-left text-sm font-medium leading-6 text-foreground">
                     {item.title}
-                  </p>
+                  </Text>
                   {item.snippet && (
-                    <p className="home-news-snippet mt-2 text-sm leading-6 text-secondary-text text-left overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                    <Text className="home-news-snippet mt-2 overflow-hidden text-left text-sm leading-6 text-secondary-text [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
                       {item.snippet}
-                    </p>
+                    </Text>
                   )}
                 </div>
                 {item.url && (
-                  <a
+                  <Anchor
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="home-accent-pill-link shrink-0 whitespace-nowrap px-2.5 py-1 text-xs"
                     aria-label={text.openLink}
+                    underline="never"
                   >
                     {text.openLink}
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14 3h7m0 0v7m0-7L10 14"
-                      />
-                    </svg>
-                  </a>
+                    <ExternalLink
+                      className="w-3.5 h-3.5"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+                  </Anchor>
                 )}
-              </div>
-            </div>
+              </Group>
+            </Paper>
           ))}
-
-        </div>
+        </Stack>
       )}
     </Card>
   );

@@ -1,8 +1,11 @@
 import type React from 'react';
 import { useEffect, useState, useCallback } from 'react';
+import { Group, Loader, Paper, ScrollArea, Stack, Text, Title } from '@mantine/core';
+import { AlertTriangle, Check, Code2, FileText } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { historyApi } from '../../api/history';
+import { Button } from '../common/Button';
 import { Drawer } from '../common/Drawer';
 import { Tooltip } from '../common/Tooltip';
 import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
@@ -106,127 +109,131 @@ export const ReportMarkdown: React.FC<ReportMarkdownProps> = ({
       backdropClassName="bg-background/56 backdrop-blur-[2px]"
     >
       {/* Custom Header */}
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <Paper radius="xl" shadow="none" className="glass-panel mb-4 px-4 py-3">
         {/* Left: Icon + Title */}
-        <div className="flex items-center gap-3 flex-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--home-action-report-bg)] text-[var(--home-action-report-text)]">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-foreground">{stockName || stockCode}</h2>
-            <p className="text-xs text-muted-text">{text.fullReport}</p>
-          </div>
-        </div>
+        <Group justify="space-between" align="center" gap="md" wrap="wrap">
+          <Group align="center" gap="md" wrap="nowrap">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--home-action-report-bg)] text-[var(--home-action-report-text)]">
+              <FileText className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            </div>
+            <Stack gap={2}>
+              <Title order={2} className="text-base font-semibold text-foreground">{stockName || stockCode}</Title>
+              <Text className="text-xs text-muted-text">{text.fullReport}</Text>
+            </Stack>
+          </Group>
 
-        {/* Right: Toolbar */}
-        <div className="flex items-center gap-2">
-          {/* Copy Markdown button */}
-          <Tooltip content={text.copyMarkdownSource}>
-            <span className="inline-flex">
-              <button
-                type="button"
-                onClick={handleCopyMarkdown}
-                disabled={isLoading || !content || copiedType !== null}
-                className="home-surface-button flex h-10 w-10 items-center justify-center rounded-lg text-secondary-text hover:text-foreground disabled:opacity-50"
-                aria-label={text.copyMarkdownSource}
-              >
-                {copiedType === 'markdown' ? (
-                  <svg className="h-6 w-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                )}
-              </button>
-            </span>
-          </Tooltip>
+          {/* Right: Toolbar */}
+          <Group gap="xs" wrap="nowrap">
+            {/* Copy Markdown button */}
+            <Tooltip content={text.copyMarkdownSource}>
+              <span className="inline-flex">
+                <Button
+                  type="button"
+                  onClick={handleCopyMarkdown}
+                  disabled={isLoading || !content || copiedType !== null}
+                  variant="home-action-report"
+                  size="sm"
+                  className="h-10 w-10 min-w-10 px-0 text-secondary-text"
+                  aria-label={text.copyMarkdownSource}
+                >
+                  {copiedType === 'markdown' ? (
+                    <Check className="h-6 w-6 text-success" strokeWidth={2} aria-hidden="true" />
+                  ) : (
+                    <Code2 className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+                  )}
+                </Button>
+              </span>
+            </Tooltip>
 
-          {/* Copy plain text button */}
-          <Tooltip content={text.copyPlainText}>
-            <span className="inline-flex">
-              <button
-                type="button"
-                onClick={handleCopyPlainText}
-                disabled={isLoading || !content || copiedType !== null}
-                className="home-surface-button flex h-10 w-10 items-center justify-center rounded-lg text-secondary-text hover:text-foreground disabled:opacity-50"
-                aria-label={text.copyPlainText}
-              >
-                {copiedType === 'text' ? (
-                  <svg className="h-6 w-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                )}
-              </button>
-            </span>
-          </Tooltip>
-        </div>
-      </div>
+            {/* Copy plain text button */}
+            <Tooltip content={text.copyPlainText}>
+              <span className="inline-flex">
+                <Button
+                  type="button"
+                  onClick={handleCopyPlainText}
+                  disabled={isLoading || !content || copiedType !== null}
+                  variant="home-action-report"
+                  size="sm"
+                  className="h-10 w-10 min-w-10 px-0 text-secondary-text"
+                  aria-label={text.copyPlainText}
+                >
+                  {copiedType === 'text' ? (
+                    <Check className="h-6 w-6 text-success" strokeWidth={2} aria-hidden="true" />
+                  ) : (
+                    <FileText className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+                  )}
+                </Button>
+              </span>
+            </Tooltip>
+          </Group>
+        </Group>
+      </Paper>
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-64">
-          <div className="home-spinner h-10 w-10 animate-spin border-[3px]" />
-          <p className="mt-4 text-secondary-text text-sm">{text.loadingReport}</p>
-        </div>
+        <Paper radius="xl" shadow="none" className="flex h-64 flex-col items-center justify-center border border-subtle bg-card/85">
+          <Loader size="lg" color="cyan" />
+          <Text className="mt-4 text-sm text-secondary-text">{text.loadingReport}</Text>
+        </Paper>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center h-64">
-          <div className="w-12 h-12 rounded-xl bg-danger/10 flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+        <Paper radius="xl" shadow="none" className="flex h-64 flex-col items-center justify-center border border-danger/20 bg-danger/5 px-4">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10">
+            <AlertTriangle
+              className="w-6 h-6 text-danger"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
           </div>
-          <p className="text-danger text-sm">{error}</p>
-          <button
+          <Text className="text-sm text-danger">{error}</Text>
+          <Button
             type="button"
             onClick={handleClose}
-            className="home-surface-button mt-4 rounded-lg px-4 py-2 text-sm text-secondary-text"
+            variant="secondary"
+            size="sm"
+            className="mt-4"
           >
             {text.dismiss}
-          </button>
-        </div>
+          </Button>
+        </Paper>
       ) : (
-        <div
-          className="home-markdown-prose prose prose-invert prose-sm max-w-none
-            prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
-            prose-h1:text-xl
-            prose-h2:text-lg
-            prose-h3:text-base
-            prose-p:leading-relaxed prose-p:mb-3 prose-p:last:mb-0
-            prose-strong:text-foreground prose-strong:font-semibold
-            prose-ul:my-2 prose-ol:my-2 prose-li:my-1
-            prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-            prose-pre:border
-            prose-table:border-collapse
-            prose-hr:my-4
-            prose-a:no-underline hover:prose-a:underline
-            prose-blockquote:text-secondary-text
-            whitespace-pre-line break-words
-          "
-        >
-          <Markdown remarkPlugins={[remarkGfm]}>
-            {content}
-          </Markdown>
-        </div>
+        <Paper radius="xl" shadow="none" className="overflow-hidden border border-subtle bg-card/92">
+          <ScrollArea.Autosize mah="70vh">
+            <div
+              className="home-markdown-prose prose prose-invert prose-sm max-w-none whitespace-pre-line break-words p-5
+                prose-headings:mb-2 prose-headings:mt-4 prose-headings:font-semibold prose-headings:text-foreground
+                prose-h1:text-xl
+                prose-h2:text-lg
+                prose-h3:text-base
+                prose-p:mb-3 prose-p:leading-relaxed prose-p:last:mb-0
+                prose-strong:font-semibold prose-strong:text-foreground
+                prose-ul:my-2 prose-ol:my-2 prose-li:my-1
+                prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:before:content-none prose-code:after:content-none
+                prose-pre:border
+                prose-table:border-collapse
+                prose-hr:my-4
+                prose-a:no-underline hover:prose-a:underline
+                prose-blockquote:text-secondary-text
+              "
+            >
+              <Markdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </Markdown>
+            </div>
+          </ScrollArea.Autosize>
+        </Paper>
       )}
 
       {/* Footer */}
-      <div className="home-divider mt-6 flex justify-end border-t pt-4">
-        <button
+      <Group justify="flex-end" className="home-divider mt-6 border-t pt-4">
+        <Button
           type="button"
           onClick={handleClose}
-          className="home-surface-button rounded-lg px-4 py-2 text-sm text-secondary-text hover:text-foreground"
+          variant="secondary"
+          size="sm"
         >
           {text.dismiss}
-        </button>
-      </div>
+        </Button>
+      </Group>
     </Drawer>
   );
 };

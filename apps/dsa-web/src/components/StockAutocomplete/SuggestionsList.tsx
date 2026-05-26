@@ -6,6 +6,7 @@
  */
 
 import type { CSSProperties } from 'react';
+import { Group, Paper, ScrollArea, Stack, Text } from '@mantine/core';
 import type { StockSuggestion } from '../../types/stockIndex';
 import { Badge } from '../common';
 import { cn } from '../../utils/cn';
@@ -35,50 +36,51 @@ export function SuggestionsList({
   }
 
   return (
-    <ul
+    <Paper
       id="suggestions-list"
-      className="z-[100] border-x border-b rounded-b-lg rounded-t-none max-h-60 overflow-auto"
+      className="z-[100] max-h-60 overflow-hidden rounded-b-xl rounded-t-none border border-subtle bg-card/95 shadow-2xl backdrop-blur-md"
       style={{
         ...style,
-        backgroundColor: 'hsl(var(--card) / 0.85)',
-        borderColor: 'var(--border-accent)',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3), -4px 0 15px -3px rgba(0, 0, 0, 0.2), 4px 0 15px -3px rgba(0, 0, 0, 0.2)'
       }}
       role="listbox"
+      radius="xl"
+      shadow="none"
     >
-      {suggestions.map((suggestion, index) => (
-        <li
-          key={suggestion.canonicalCode}
-          role="option"
-          aria-selected={index === highlightedIndex}
-          className={cn(
-            "px-4 py-1 cursor-pointer flex items-center justify-between",
-            "hover:bg-[var(--autocomplete-hover-bg)]/25",
-            index === highlightedIndex && "bg-[var(--autocomplete-hover-bg)]/25"
-          )}
-          onClick={() => onSelect(suggestion)}
-          onMouseEnter={() => onMouseEnter(index)}
-        >
-          <div className="flex items-center gap-3">
-            {/* Market badge */}
-            <MarketBadge market={suggestion.market} />
-
-            {/* Name and code */}
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-primary-text">
-                {suggestion.nameZh}
-              </span>
-              <span className="text-sm text-secondary-text">
-                {suggestion.displayCode}
-              </span>
-            </div>
-          </div>
-
-          {/* Match type badge */}
-          <MatchTypeBadge matchType={suggestion.matchType} />
-        </li>
-      ))}
-    </ul>
+      <ScrollArea.Autosize mah={240}>
+        <Stack gap={0}>
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={suggestion.canonicalCode}
+              type="button"
+              role="option"
+              aria-selected={index === highlightedIndex}
+              className={cn(
+                'w-full cursor-pointer border-0 bg-transparent px-4 py-3 text-left transition-colors',
+                'hover:bg-[var(--autocomplete-hover-bg)]/20',
+                index === highlightedIndex && 'bg-[var(--autocomplete-hover-bg)]/20',
+              )}
+              onClick={() => onSelect(suggestion)}
+              onMouseEnter={() => onMouseEnter(index)}
+            >
+              <Group justify="space-between" align="center" gap="md" wrap="nowrap">
+                <Group gap="sm" align="center" wrap="nowrap">
+                  <MarketBadge market={suggestion.market} />
+                  <div className="min-w-0">
+                    <Text className="truncate text-sm font-medium text-foreground">
+                      {suggestion.nameZh}
+                    </Text>
+                    <Text className="truncate text-xs text-secondary-text">
+                      {suggestion.displayCode}
+                    </Text>
+                  </div>
+                </Group>
+                <MatchTypeBadge matchType={suggestion.matchType} />
+              </Group>
+            </button>
+          ))}
+        </Stack>
+      </ScrollArea.Autosize>
+    </Paper>
   );
 }
 

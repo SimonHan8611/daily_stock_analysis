@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Alert, Group, Text } from '@mantine/core';
 import { cn } from '../../utils/cn';
 
 type InlineAlertVariant = 'info' | 'success' | 'warning' | 'danger';
@@ -26,17 +27,19 @@ export const InlineAlert: React.FC<InlineAlertProps> = ({
   className = '',
 }) => {
   return (
-    <div
+    <Alert
       role="alert"
       className={cn('rounded-2xl border px-4 py-3 shadow-soft-card', variantStyles[variant], className)}
+      radius="xl"
+      variant="light"
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <Group align="flex-start" justify="space-between" gap="md">
         <div>
-          {title ? <p className="text-sm font-semibold">{title}</p> : null}
+          {title ? <Text size="sm" fw={600}>{title}</Text> : null}
           <div className={cn('text-sm', title ? 'mt-1 opacity-90' : 'opacity-90')}>{message}</div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
-    </div>
+      </Group>
+    </Alert>
   );
 };

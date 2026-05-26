@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Box, Paper, Stack, Text, Title } from '@mantine/core';
 import { cn } from '../../utils/cn';
 
 interface CardProps {
@@ -39,35 +40,37 @@ export const Card: React.FC<CardProps> = ({
   };
 
   const hoverStyles = hoverable ? 'terminal-card-hover cursor-pointer' : '';
+  const header = title || subtitle ? (
+    <Stack gap={4} mb="md">
+      {subtitle ? <Text className="label-uppercase">{subtitle}</Text> : null}
+      {title ? (
+        <Title order={3} className="mt-1 text-lg font-semibold text-foreground">
+          {title}
+        </Title>
+      ) : null}
+    </Stack>
+  ) : null;
 
   if (variant === 'gradient') {
     return (
-      <div className={cn(variantStyles.gradient, className)} style={style}>
-        <div className={cn('gradient-border-card-inner', paddingStyles[padding])}>
-          {(title || subtitle) && (
-            <div className="mb-3">
-              {subtitle ? <span className="label-uppercase">{subtitle}</span> : null}
-              {title ? <h3 className="mt-1 text-lg font-semibold text-foreground">{title}</h3> : null}
-            </div>
-          )}
+      <Box className={cn(variantStyles.gradient, className)} style={style}>
+        <Paper className={cn('gradient-border-card-inner', paddingStyles[padding])} radius="xl" shadow="none">
+          {header}
           {children}
-        </div>
-      </div>
+        </Paper>
+      </Box>
     );
   }
 
   return (
-    <div
+    <Paper
       style={style}
       className={cn('rounded-2xl', variantStyles[variant], hoverStyles, paddingStyles[padding], className)}
+      radius="xl"
+      shadow="none"
     >
-      {(title || subtitle) && (
-        <div className="mb-3">
-          {subtitle ? <span className="label-uppercase">{subtitle}</span> : null}
-          {title ? <h3 className="mt-1 text-lg font-semibold text-foreground">{title}</h3> : null}
-        </div>
-      )}
+      {header}
       {children}
-    </div>
+    </Paper>
   );
 };

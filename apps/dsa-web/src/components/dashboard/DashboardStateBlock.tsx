@@ -1,5 +1,6 @@
-import type React from 'react';
-import { cn } from '../../utils/cn';
+import type React from "react";
+import { Loader, Stack, Text } from "@mantine/core";
+import { cn } from "../../utils/cn";
 
 interface DashboardStateBlockProps {
   title: string;
@@ -11,7 +12,7 @@ interface DashboardStateBlockProps {
   descriptionClassName?: string;
   compact?: boolean;
   loading?: boolean;
-  titleAs?: 'p' | 'h2' | 'h3' | 'h4' | 'span';
+  titleAs?: "p" | "h2" | "h3" | "h4" | "span";
 }
 
 export const DashboardStateBlock: React.FC<DashboardStateBlockProps> = ({
@@ -19,41 +20,59 @@ export const DashboardStateBlock: React.FC<DashboardStateBlockProps> = ({
   description,
   icon,
   action,
-  className = '',
-  titleClassName = '',
-  descriptionClassName = '',
+  className = "",
+  titleClassName = "",
+  descriptionClassName = "",
   compact = false,
   loading = false,
-  titleAs = 'p',
+  titleAs = "p",
 }) => {
   const TitleTag = titleAs;
 
   return (
-    <div
+    <Stack
+      align="center"
+      justify="center"
+      gap={compact ? "xs" : "sm"}
       className={cn(
-        'flex flex-col items-center justify-center text-center',
-        compact ? 'gap-2 py-6' : 'gap-3 py-10',
+        "flex flex-col items-center justify-center text-center",
+        compact ? "gap-2 py-6" : "gap-3 py-10",
         className,
       )}
     >
       {loading ? (
-        <div className="home-spinner h-6 w-6 animate-spin border-2" aria-hidden="true" />
+        <Loader className="home-spinner" size="sm" aria-hidden="true" />
       ) : icon ? (
         <div className="home-state-icon-muted flex h-11 w-11 items-center justify-center rounded-full bg-subtle">
           {icon}
         </div>
       ) : null}
-      <div className="space-y-1">
-        <TitleTag className={cn('text-secondary-text', compact ? 'text-xs' : 'text-sm', titleClassName)}>
+      <Stack gap={4}>
+        <Text
+          component={TitleTag}
+          className={cn(
+            "text-secondary-text",
+            compact ? "text-xs" : "text-sm",
+            titleClassName,
+          )}
+        >
           {title}
-        </TitleTag>
+        </Text>
         {description ? (
-          <p className={cn('mx-auto max-w-xs text-secondary-text', compact ? 'text-label' : 'text-xs', descriptionClassName)}>
+          <Text
+            className={cn(
+              "mx-auto max-w-xs text-secondary-text",
+              compact ? "text-label" : "text-xs",
+              descriptionClassName,
+            )}
+          >
             {description}
-          </p>
+          </Text>
         ) : null}
-      </div>
-      {action ? <div className="flex items-center justify-center">{action}</div> : null}
-    </div>
+      </Stack>
+      {action ? (
+        <div className="flex items-center justify-center">{action}</div>
+      ) : null}
+    </Stack>
   );
 };

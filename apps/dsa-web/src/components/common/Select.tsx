@@ -1,5 +1,6 @@
-import React, { useId } from 'react';
-import { cn } from '../../utils/cn';
+import React, { useId } from "react";
+import { Select as MantineSelect } from "@mantine/core";
+import { cn } from "../../utils/cn";
 
 interface SelectOption {
   value: string;
@@ -29,52 +30,34 @@ export const Select: React.FC<SelectProps> = ({
   onChange,
   options,
   label,
-  placeholder = '请选择',
+  placeholder = "请选择",
   disabled = false,
-  className = '',
+  className = "",
+  searchable = false,
+  emptyText = "暂无数据",
 }) => {
   const selectId = useId();
   const resolvedId = id ?? selectId;
 
   return (
-    <div className={cn('flex flex-col', className)}>
-      {label ? <label htmlFor={resolvedId} className="mb-2 text-sm font-medium text-foreground">{label}</label> : null}
-      <div className="relative">
-        <select
-          id={resolvedId}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={cn(
-            'input-surface input-focus-glow h-11 w-full appearance-none rounded-xl border bg-transparent px-4 py-2.5 pr-10 text-sm text-foreground',
-            'transition-all duration-200 focus:outline-none',
-            disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-          )}
-        >
-          {placeholder && (
-            <option value="" disabled>
-              {placeholder}
-            </option>
-          )}
-          {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-elevated text-foreground">
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Dropdown arrow */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <svg
-            className="h-4 w-4 text-secondary-text"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-    </div>
+    <MantineSelect
+      id={resolvedId}
+      label={label}
+      value={value || null}
+      onChange={(nextValue) => onChange(nextValue ?? "")}
+      data={options}
+      disabled={disabled}
+      placeholder={placeholder}
+      searchable={searchable}
+      nothingFoundMessage={emptyText}
+      className={className}
+      classNames={{
+        input: cn(
+          "input-surface input-focus-glow h-11 rounded-xl border bg-transparent text-sm text-foreground transition-all duration-200 focus:outline-none",
+          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        ),
+        label: "mb-2 text-sm font-medium text-foreground",
+      }}
+    />
   );
 };

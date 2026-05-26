@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { Card } from './Card';
 
 interface SectionCardProps {
@@ -18,13 +19,15 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 }) => {
   return (
     <Card className={className} padding="md" variant="bordered">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          {subtitle ? <span className="label-uppercase">{subtitle}</span> : null}
-          <h2 className="mt-1 text-lg font-semibold text-foreground">{title}</h2>
-        </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
-      </div>
+      <Group align="flex-start" justify="space-between" gap="md" mb="md" wrap="nowrap">
+        <Stack gap={4}>
+          {subtitle ? <Text className="label-uppercase">{subtitle}</Text> : null}
+          <Title order={2} className="mt-1 text-lg font-semibold text-foreground">
+            {title}
+          </Title>
+        </Stack>
+        {actions ? <Group gap="xs" wrap="wrap">{actions}</Group> : null}
+      </Group>
       {children}
     </Card>
   );

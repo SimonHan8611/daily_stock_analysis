@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { ReportLanguage, ReportStrategy as ReportStrategyType } from '../../types/analysis';
 import { Card } from '../common';
 import { DashboardPanelHeader } from '../dashboard';
@@ -20,18 +21,25 @@ const StrategyItem: React.FC<StrategyItemProps> = ({
   value,
   tone,
 }) => (
-  <div className="home-subpanel home-strategy-card p-3" style={{ ['--home-strategy-tone' as string]: `var(${tone})` }}>
-    <div className="flex flex-col">
-      <span className="home-strategy-label mb-0.5 text-xs">{label}</span>
-      <span className="home-strategy-value text-lg font-bold font-mono" style={!value ? { color: 'var(--text-muted-text)' } : undefined}>
+  <Paper
+    className="home-subpanel home-strategy-card p-3"
+    style={{ ['--home-strategy-tone' as string]: `var(${tone})` }}
+    radius="lg"
+    shadow="none"
+  >
+    <Group justify="space-between" align="flex-start" wrap="nowrap">
+      <Stack gap={2}>
+        <Text className="home-strategy-label mb-0.5 text-xs">{label}</Text>
+        <Text className="home-strategy-value text-lg font-bold font-mono" style={!value ? { color: 'var(--text-muted-text)' } : undefined}>
         {value || '—'}
-      </span>
-    </div>
+        </Text>
+      </Stack>
+    </Group>
     <div
       className="absolute bottom-0 left-0 right-0 h-0.5"
       style={{ background: `linear-gradient(90deg, transparent, var(${tone}), transparent)` }}
     />
-  </div>
+  </Paper>
 );
 
 /**
@@ -75,11 +83,11 @@ export const ReportStrategy: React.FC<ReportStrategyProps> = ({ strategy, langua
         title={text.sniperLevels}
         className="mb-3"
       />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
         {strategyItems.map((item) => (
           <StrategyItem key={item.label} {...item} />
         ))}
-      </div>
+      </SimpleGrid>
     </Card>
   );
 };

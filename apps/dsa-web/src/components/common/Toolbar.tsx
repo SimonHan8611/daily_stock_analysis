@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Group, Paper } from '@mantine/core';
 import { cn } from '../../utils/cn';
 
 interface ToolbarProps {
@@ -9,9 +10,11 @@ interface ToolbarProps {
 
 export const Toolbar: React.FC<ToolbarProps> = ({ left, right, className = '' }) => {
   return (
-    <div className={cn('glass-panel flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between', className)}>
-      <div className="flex flex-wrap items-center gap-2">{left}</div>
-      <div className="flex flex-wrap items-center gap-2 md:justify-end">{right}</div>
-    </div>
+    <Paper className={cn('glass-panel px-4 py-3', className)} radius="xl" shadow="none">
+      <Group justify="space-between" gap="md" align="center">
+        <Group gap="xs" wrap="wrap">{left}</Group>
+        <Group gap="xs" wrap="wrap" justify="flex-end">{right}</Group>
+      </Group>
+    </Paper>
   );
 };

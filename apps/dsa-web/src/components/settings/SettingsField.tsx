@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type React from 'react';
-import { Badge, Button, Select, Input, Tooltip } from '../common';
+import { Paper, Text } from '@mantine/core';
+import { Badge, Button, Checkbox, Select, Input, Tooltip } from '../common';
 import type { ConfigValidationIssue, SystemConfigFieldSchema, SystemConfigItem } from '../../types/systemConfig';
 import { getFieldDescriptionZh, getFieldTitleZh } from '../../utils/systemConfigI18n';
 import { cn } from '../../utils/cn';
@@ -87,16 +88,13 @@ function renderFieldControl(
   if (controlType === 'switch') {
     const checked = value.trim().toLowerCase() === 'true';
     return (
-      <label className="inline-flex cursor-pointer items-center gap-3">
-        <input
+      <Checkbox
           id={controlId}
-          type="checkbox"
           checked={checked}
           disabled={disabled || !schema?.isEditable}
           onChange={(event) => onChange(event.target.checked ? 'true' : 'false')}
+          label={checked ? '已启用' : '未启用'}
         />
-        <span className="text-sm text-secondary-text">{checked ? '已启用' : '未启用'}</span>
-      </label>
     );
   }
 
@@ -204,12 +202,14 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
   const controlId = `setting-${item.key}`;
 
   return (
-    <div
+    <Paper
       className={cn(
         'rounded-[1.15rem] border bg-[var(--settings-surface)] p-4 shadow-soft-card transition-[background-color,border-color,box-shadow] duration-200',
         hasError ? 'border-danger/40 hover:border-danger/55' : 'border-[var(--settings-border)] hover:border-[var(--settings-border-strong)]',
         'hover:bg-[var(--settings-surface-hover)]',
       )}
+      radius="xl"
+      shadow="none"
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <label className="text-sm font-semibold text-foreground" htmlFor={controlId}>
@@ -248,10 +248,10 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
       </div>
 
       {schema?.isSensitive ? (
-        <p className="mt-3 text-[11px] leading-5 text-secondary-text">
+        <Text className="mt-3 text-[11px] leading-5 text-secondary-text">
           敏感内容默认隐藏，可点击眼睛图标查看明文。
           {isMultiValue ? ' 支持添加多个输入框进行增删。' : ''}
-        </p>
+        </Text>
       ) : null}
 
       {issues.length ? (
@@ -266,6 +266,6 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
           ))}
         </div>
       ) : null}
-    </div>
+    </Paper>
   );
 };

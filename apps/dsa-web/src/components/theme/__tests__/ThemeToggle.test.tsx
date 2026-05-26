@@ -34,4 +34,15 @@ describe('ThemeToggle', () => {
     expect(screen.getByRole('menuitemradio', { name: '深色' })).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', { name: '跟随系统' })).toBeInTheDocument();
   });
+
+  it('renders the nav variant label when expanded', () => {
+    render(
+      <ThemeProvider>
+        <ThemeToggle variant="nav" />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole('button', { name: '切换主题' })).toBeInTheDocument();
+    expect(screen.getByText('主题')).toBeInTheDocument();
+  });
 });

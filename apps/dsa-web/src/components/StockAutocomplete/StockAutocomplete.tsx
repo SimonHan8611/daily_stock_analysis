@@ -9,6 +9,7 @@ import { Component, useRef, useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Loader, TextInput } from '@mantine/core';
 import { useStockIndex } from '../../hooks/useStockIndex';
 import { useAutocomplete } from '../../hooks/useAutocomplete';
 import { SuggestionsList } from './SuggestionsList';
@@ -41,7 +42,7 @@ function FallbackInput({
   className,
 }: StockAutocompleteProps) {
   return (
-    <input
+    <TextInput
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -52,8 +53,14 @@ function FallbackInput({
       }}
       placeholder={placeholder}
       disabled={disabled}
-      className={cn(AUTOCOMPLETE_INPUT_CLASS, className)}
       data-autocomplete-mode="fallback"
+      classNames={{
+        input: cn(
+          AUTOCOMPLETE_INPUT_CLASS,
+          'bg-card/80 shadow-soft-card',
+          className,
+        ),
+      }}
     />
   );
 }
@@ -237,7 +244,7 @@ function StockAutocompleteInner({
 
   return (
     <div className="relative stock-autocomplete">
-      <input
+      <TextInput
         ref={inputRef}
         type="text"
         value={value}
@@ -253,22 +260,25 @@ function StockAutocompleteInner({
         onBlur={handleBlur}
         placeholder={placeholder}
         disabled={disabled}
-        className={cn(
-          AUTOCOMPLETE_INPUT_CLASS,
-          isOpen && "rounded-b-none",
-          className
-        )}
         aria-autocomplete="none"
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-controls="suggestions-list"
+        classNames={{
+          input: cn(
+            AUTOCOMPLETE_INPUT_CLASS,
+            'bg-card/80 shadow-soft-card',
+            isOpen && 'rounded-b-none border-b-transparent',
+            className,
+          ),
+        }}
       />
 
       {/* Loading indicator */}
       {loading && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <div className="w-4 h-4 border-2 border-cyan/20 border-t-cyan rounded-full animate-spin" />
+          <Loader size="xs" color="cyan" />
         </div>
       )}
 

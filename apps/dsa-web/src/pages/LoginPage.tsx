@@ -1,13 +1,25 @@
 import type React from "react";
 import { useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, useSpring } from "motion/react";
+import { motion } from "motion/react";
 import {
+  Box,
+  Divider,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import {
+  BellRing,
+  ChartColumnBig,
   Lock,
   Loader2,
-  Cpu,
-  TrendingUp,
-  Network,
+  Shield,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { Button, Input, ParticleBackground } from "../components/common";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -16,14 +28,20 @@ import { isParsedApiError } from "../api/error";
 import { useAuth } from "../hooks";
 import { SettingsAlert } from "../components/settings";
 
+const FEATURE_ITEMS = [
+  { icon: Sparkles, title: "智能分析" },
+  { icon: Shield, title: "实时监控" },
+  { icon: BellRing, title: "预警通知" },
+] as const;
+
 const LoginPage: React.FC = () => {
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  // Set page title
   useEffect(() => {
     document.title = "登录 - DSA";
   }, []);
+
   const [searchParams] = useSearchParams();
   const rawRedirect = searchParams.get("redirect") ?? "";
   const redirect =
@@ -39,27 +57,13 @@ const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | ParsedApiError | null>(null);
 
-  // 3D Tilt effect values
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  const handleToggleMode = () => {
+    setIsLoginMode((prev) => !prev);
+    setError(null);
+  };
 
-  // Smooth out the mouse movement
-  const smoothX = useSpring(mouseX, { damping: 30, stiffness: 200 });
-  const smoothY = useSpring(mouseY, { damping: 30, stiffness: 200 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX / window.innerWidth - 0.5;
-      const y = e.clientY / window.innerHeight - 0.5;
-      mouseX.set(x);
-      mouseY.set(y);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
@@ -71,29 +75,25 @@ const LoginPage: React.FC = () => {
         } else {
           setError(result.error ?? "登录失败");
         }
+        return;
+      }
+
+      if (password !== passwordConfirm) {
+        setError("两次输入的密码不一致");
+        return;
+      }
+
+      const result = await register(username, password, passwordConfirm, email);
+      if (!result.success) {
+        setError(result.error ?? "注册失败");
+        return;
+      }
+
+      const loginResult = await login(username, password);
+      if (loginResult.success) {
+        navigate(redirect, { replace: true });
       } else {
-        if (password !== passwordConfirm) {
-          setError("两次输入的密码不一致");
-          setIsSubmitting(false);
-          return;
-        }
-        const result = await register(
-          username,
-          password,
-          passwordConfirm,
-          email,
-        );
-        if (result.success) {
-          // auto login after register
-          const loginResult = await login(username, password);
-          if (loginResult.success) {
-            navigate(redirect, { replace: true });
-          } else {
-            setError(loginResult.error ?? "注册成功，但自动登录失败");
-          }
-        } else {
-          setError(result.error ?? "注册失败");
-        }
+        setError(loginResult.error ?? "注册成功，但自动登录失败");
       }
     } finally {
       setIsSubmitting(false);
@@ -101,255 +101,313 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-[var(--login-bg-main)] py-12 font-sans selection:bg-[var(--login-accent-soft)] sm:px-6 lg:px-8 [perspective:1500px]">
-      {/* Dynamic Background */}
+    <div className="relative min-h-screen overflow-hidden bg-[hsl(208_92%_96%)] font-sans selection:bg-[var(--login-accent-soft)] [--login-button-text:hsl(210_40%_98%)] [--login-error-bg:hsl(0_84%_60%_/_0.10)] [--login-error-border:hsl(0_84%_60%_/_0.20)] [--login-error-text:hsl(0_72%_46%)] [--login-input-border-focus:hsl(198_100%_48%_/_0.45)] [--login-input-border-hover:hsl(204_72%_70%)] [--login-input-border:hsl(205_48%_82%)] [--login-input-caret:hsl(198_100%_42%)] [--login-input-fill:hsl(220_45%_18%)] [--login-input-focus-ring:0_0_0_4px_hsl(198_100%_48%_/_0.12)] [--login-input-icon:hsl(199_88%_42%_/_0.86)] [--login-input-placeholder:hsl(218_18%_52%)] [--login-input-shadow:0_10px_24px_hsl(204_70%_30%_/_0.06)] [--login-input-surface:hsl(204_64%_98%_/_0.94)] [--login-input-text:hsl(220_45%_18%)] [--login-label-text:hsl(223_36%_14%)]">
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_16%_14%,hsl(196_100%_62%_/_0.30),transparent_34%),radial-gradient(circle_at_84%_18%,hsl(230_100%_76%_/_0.18),transparent_31%),linear-gradient(135deg,hsl(205_100%_98%)_0%,hsl(208_92%_96%)_48%,hsl(218_100%_98%)_100%)]" />
       <ParticleBackground />
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,hsl(208_42%_55%_/_0.10)_1px,transparent_1px),linear-gradient(to_bottom,hsl(208_42%_55%_/_0.10)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(circle_at_50%_42%,black,transparent_78%)]" />
+      <div className="absolute left-[-12rem] top-[-12rem] z-0 h-[30rem] w-[30rem] rounded-full bg-[hsl(196_100%_62%_/_0.22)] blur-[80px]" />
+      <div className="absolute bottom-[-14rem] right-[-12rem] z-0 h-[34rem] w-[34rem] rounded-full bg-[hsl(229_100%_76%_/_0.18)] blur-[90px]" />
 
-      {/* Cyber Grid */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,var(--login-grid-line)_1px,transparent_1px),linear-gradient(to_bottom,var(--login-grid-line)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:var(--login-grid-mask)]" />
-
-      {/* Parallax Glowing Orbs */}
-      <motion.div
-        style={{
-          x: useTransform(smoothX, [-0.5, 0.5], [-50, 50]),
-          y: useTransform(smoothY, [-0.5, 0.5], [-50, 50]),
-        }}
-        className="absolute left-[20%] top-[20%] -z-10 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--login-accent-glow)] blur-[100px]"
-      />
-      <motion.div
-        style={{
-          x: useTransform(smoothX, [-0.5, 0.5], [60, -60]),
-          y: useTransform(smoothY, [-0.5, 0.5], [60, -60]),
-        }}
-        className="absolute right-[20%] bottom-[10%] -z-10 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-emerald-600/10 blur-[120px]"
-      />
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="flex flex-col items-center justify-center mb-10 relative"
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="relative w-full max-w-[1120px]"
         >
-          {/* Immersive Full-Height Background Logo */}
-          <motion.div
-            style={{
-              x: useTransform(smoothX, [-0.5, 0.5], [-8, 8]),
-              y: useTransform(smoothY, [-0.5, 0.5], [-8, 8]),
-              rotate: useTransform(smoothX, [-0.5, 0.5], [-0.5, 0.5]),
-            }}
-            className="pointer-events-none absolute -top-[20vh] -z-10 opacity-80"
+          <Paper
+            radius={26}
+            className="relative overflow-hidden border border-[hsl(206_62%_82%_/_0.82)] !bg-white/70 shadow-[0_32px_110px_hsl(206_80%_36%_/_0.18)] backdrop-blur-xl"
           >
-            <div className="relative flex h-[120vh] w-[120vh] items-center justify-center rounded-full border border-[var(--login-accent-soft)] bg-gradient-to-br from-[var(--login-accent-soft)] to-[hsl(214_100%_20%_/_0.18)] shadow-[inset_0_0_200px_var(--login-accent-glow)] blur-[4px]">
-              <Cpu className="h-[70vh] w-[70vh] text-[hsl(200_80%_22%_/_0.4)] brightness-50" />
-              <TrendingUp className="absolute h-[25vh] w-[25vh] translate-x-[15vh] translate-y-[15vh] text-emerald-900/30 brightness-50" />
-            </div>
-          </motion.div>
+            <div className="grid min-h-[620px] grid-cols-1 lg:grid-cols-2">
+              <div className="login-promo-col">
+                <Box className="relative flex h-full flex-col justify-start gap-7 overflow-hidden bg-[linear-gradient(145deg,hsl(201_100%_97%_/_0.96),hsl(209_100%_93%_/_0.82))] px-6 py-7 sm:px-10 lg:px-12">
+                  <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[hsl(196_100%_62%_/_0.24)] blur-[55px]" />
+                  <div className="pointer-events-none absolute bottom-[-7rem] left-[-6rem] h-80 w-80 rounded-full border border-sky-300/40" />
 
-          <div className="mt-8 flex flex-col items-center">
-            <h2 className="text-4xl font-extrabold tracking-tighter text-[var(--login-text-primary)] sm:text-6xl">
-              <span className="bg-gradient-to-r from-[var(--login-text-primary)] via-[var(--login-text-primary)] to-[var(--login-text-secondary)] bg-clip-text text-transparent">
-                DAILY{" "}
-              </span>
-              <span className="bg-gradient-to-r from-[var(--login-brand-start)] to-[var(--login-brand-end)] bg-clip-text text-transparent drop-shadow-[0_0_20px_var(--login-accent-glow)]">
-                STOCK
-              </span>
-            </h2>
-            <h3 className="mt-1 text-xl font-bold uppercase tracking-[0.5em] text-[var(--login-text-muted)]">
-              Analysis Engine
-            </h3>
-          </div>
+                  <Group gap="md" wrap="nowrap" className="relative z-10">
+                    <ThemeIcon
+                      size={46}
+                      radius="xl"
+                      variant="gradient"
+                      gradient={{ from: "blue.5", to: "cyan.5", deg: 135 }}
+                    >
+                      <ChartColumnBig size={22} />
+                    </ThemeIcon>
+                    <div>
+                      <Text className="text-[0.86rem] font-black uppercase tracking-[0.08em] text-[hsl(221_47%_18%)]">
+                        Daily Stock Analysis
+                      </Text>
+                      <Text className="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.42em] text-sky-500">
+                        Engine
+                      </Text>
+                    </div>
+                  </Group>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-6 flex items-center gap-2 rounded-full border border-[var(--login-accent-border)] bg-[var(--login-accent-soft)] px-3 py-1 text-[10px] font-medium text-[var(--login-accent-text)] backdrop-blur-sm"
-          >
-            <Network className="h-3 w-3" />
-            <span>V3.X QUANTITATIVE SYSTEM</span>
-          </motion.div>
-        </motion.div>
+                  <Stack gap="xl" className="relative z-10 mb-1 mt-8 w-full max-w-[620px]">
+                    <Stack gap="md">
+                      <Title
+                        order={1}
+                        className="text-[2.45rem] font-black leading-tight tracking-[-0.04em] text-[hsl(220_45%_18%)] sm:text-[3.4rem]"
+                      >
+                        股票智能分析系统
+                      </Title>
+                      <Text className="max-w-[500px] text-[0.96rem] leading-7 text-[hsl(220_18%_42%)]">
+                        自动分析、历史报告、策略问答与预警通知统一汇总，帮助你更快进入每日决策。
+                      </Text>
+                    </Stack>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="relative group z-20 pointer-events-auto"
-        >
-          {/* Card Border Glow */}
-          <div className="pointer-events-none absolute -inset-0.5 rounded-3xl bg-gradient-to-b from-[var(--login-accent-glow)] to-[hsl(214_100%_56%_/_0.18)] opacity-50 blur-sm transition duration-1000 group-hover:opacity-100 group-hover:duration-200" />
+                    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                      {FEATURE_ITEMS.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.title}
+                            className="flex min-h-[4.25rem] items-center justify-center rounded-2xl border border-sky-200/80 bg-white/76 px-3 py-3 shadow-[0_10px_28px_hsl(204_70%_30%_/_0.07)] backdrop-blur-sm"
+                          >
+                            <Group gap="sm" wrap="nowrap" justify="center">
+                              <ThemeIcon
+                                size={34}
+                                radius="xl"
+                                variant="light"
+                                color="blue"
+                              >
+                                <Icon className="h-4 w-4" />
+                              </ThemeIcon>
+                              <Text className="whitespace-nowrap text-sm font-bold text-[hsl(220_30%_24%)]">
+                                {item.title}
+                              </Text>
+                            </Group>
+                          </div>
+                        );
+                      })}
+                    </SimpleGrid>
+                  </Stack>
 
-          <div className="pointer-events-auto relative flex flex-col overflow-hidden rounded-3xl border border-[var(--login-border-card)] bg-[var(--login-bg-card)]/80 p-8 shadow-2xl backdrop-blur-xl">
-            {/* Inner corner glow */}
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[var(--login-accent-soft)] blur-[50px]" />
-            <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-[50px]" />
-
-            <div className="mb-8">
-              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--login-text-primary)]">
-                {!isLoginMode ? (
-                  <>
-                    <ShieldCheck className="h-6 w-6 text-emerald-400" />
-                    <span>注册账号</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-5 w-5 text-[var(--login-accent-text)]" />
-                    <span>系统登录</span>
-                  </>
-                )}
-              </h1>
-              <p className="mt-2 text-sm text-[var(--login-text-secondary)]">
-                {!isLoginMode
-                  ? "注册新用户以使用 DSA 决策引擎。首个注册用户将自动成为管理员。"
-                  : "访问 DSA 量化决策引擎需要有效的身份凭证。"}
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <Input
-                  id="username"
-                  type="text"
-                  appearance="login"
-                  label="用户名"
-                  placeholder="请输入用户名"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={isSubmitting}
-                  autoFocus
-                  autoComplete="username"
-                  required
-                />
-
-                {!isLoginMode && (
-                  <Input
-                    id="email"
-                    type="email"
-                    appearance="login"
-                    label="邮箱 (可选)"
-                    placeholder="请输入邮箱地址"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete="email"
-                  />
-                )}
-
-                <Input
-                  id="password"
-                  type="password"
-                  appearance="login"
-                  allowTogglePassword
-                  iconType="password"
-                  label="登录密码"
-                  placeholder={
-                    !isLoginMode ? "请设置 6 位以上密码" : "请输入密码"
-                  }
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isSubmitting}
-                  autoComplete={
-                    !isLoginMode ? "new-password" : "current-password"
-                  }
-                  required
-                />
-
-                {!isLoginMode && (
-                  <Input
-                    id="passwordConfirm"
-                    type="password"
-                    appearance="login"
-                    allowTogglePassword
-                    iconType="password"
-                    label="确认密码"
-                    placeholder="再次确认登录密码"
-                    value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete="new-password"
-                    required
-                  />
-                )}
+                  <div className="relative z-10 rounded-2xl border border-sky-300/60 bg-white/70 px-4 py-3 backdrop-blur-sm">
+                    <Group justify="space-between" gap="md" wrap="wrap">
+                      <div>
+                        <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-500">
+                          Workspace
+                        </Text>
+                        <Text className="mt-1 text-sm font-bold text-[hsl(220_38%_22%)]">
+                          安全会话已准备就绪
+                        </Text>
+                      </div>
+                      <Text className="font-mono text-[0.72rem] uppercase tracking-[0.2em] text-sky-500">
+                        DSA / 2026
+                      </Text>
+                    </Group>
+                  </div>
+                </Box>
               </div>
 
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="overflow-hidden"
-                >
-                  <SettingsAlert
-                    title={!isLoginMode ? "注册失败" : "验证未通过"}
-                    message={isParsedApiError(error) ? error.message : error}
-                    variant="error"
-                    className="!border-[var(--login-error-border)] !bg-[var(--login-error-bg)] !text-[var(--login-error-text)]"
-                  />
-                </motion.div>
-              )}
+              <div className="login-form-col">
+                <Box className="relative flex h-full items-center justify-center px-4 py-6 sm:px-8 sm:py-8 lg:px-6">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.08 }}
+                    className="relative z-10 w-full max-w-[min(34rem,calc(100vw-2rem))] lg:max-w-[34rem]"
+                  >
+                    <Paper
+                      radius={24}
+                      className="border border-sky-200/80 !bg-white/86 px-4 py-5 shadow-[0_24px_80px_hsl(206_70%_30%_/_0.16)] backdrop-blur-2xl sm:px-8 sm:py-8"
+                    >
+                      <Stack gap="lg">
+                        <Stack gap="sm">
+                          <Group gap="sm" wrap="nowrap">
+                            <ThemeIcon
+                              size={40}
+                              radius="xl"
+                              variant="gradient"
+                              gradient={{
+                                from: "cyan.5",
+                                to: "blue.6",
+                                deg: 135,
+                              }}
+                            >
+                              {isLoginMode ? (
+                                <Lock className="h-5 w-5" />
+                              ) : (
+                                <ShieldCheck className="h-5 w-5" />
+                              )}
+                            </ThemeIcon>
+                            <Title
+                              order={2}
+                              className="text-[2rem] font-black tracking-[-0.04em] text-[hsl(220_40%_18%)]"
+                            >
+                              {!isLoginMode ? "注册账号" : "系统登录"}
+                            </Title>
+                          </Group>
+                          <Text className="text-sm leading-6 text-[hsl(220_18%_42%)]">
+                            {!isLoginMode
+                              ? "请输入您的账户信息以注册股票智能分析系统，首个注册用户将自动成为管理员。"
+                              : "请输入您的账户信息以登录股票智能分析系统。"}
+                          </Text>
+                        </Stack>
 
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="group/btn relative h-12 w-full overflow-hidden rounded-xl border-0 bg-gradient-to-r from-[var(--login-brand-button-start)] to-[var(--login-brand-button-end)] font-medium text-[var(--login-button-text)] shadow-lg shadow-[0_18px_36px_hsl(214_100%_8%_/_0.24)] hover:from-[var(--login-brand-button-start-hover)] hover:to-[var(--login-brand-button-end-hover)]"
-                disabled={isSubmitting}
-              >
-                <div className="relative z-10 flex items-center justify-center gap-2">
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>正在处理...</span>
-                    </>
-                  ) : (
-                    <span>
-                      {!isLoginMode ? "完成注册并登录" : "授权进入工作台"}
-                    </span>
-                  )}
-                </div>
-                <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
-              </Button>
+                        <Divider className="border-sky-200/80" />
 
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLoginMode(!isLoginMode);
-                    setError(null);
-                  }}
-                  className="group/link text-sm cursor-pointer text-[var(--login-text-secondary)] transition-colors"
-                  disabled={isSubmitting}
-                >
-                  {isLoginMode ? (
-                    <>
-                      没有账号？
-                      <span className="text-[var(--login-accent-text)] group-hover/link:text-[var(--login-brand-start)] group-hover/link:underline">
-                        点击注册
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      已有账号？
-                      <span className="text-[var(--login-accent-text)] group-hover/link:text-[var(--login-brand-start)] group-hover/link:underline">
-                        返回登录
-                      </span>
-                    </>
-                  )}
-                </button>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div className="space-y-4">
+                            <Input
+                              id="username"
+                              type="text"
+                              appearance="login"
+                              label="用户名"
+                              placeholder="请输入用户名"
+                              className="!h-12 !rounded-2xl"
+                              value={username}
+                              onChange={(event) =>
+                                setUsername(event.target.value)
+                              }
+                              disabled={isSubmitting}
+                              autoFocus
+                              autoComplete="username"
+                              required
+                            />
+
+                            {!isLoginMode ? (
+                              <Input
+                                id="email"
+                                type="email"
+                                appearance="login"
+                                label="邮箱（可选）"
+                                placeholder="请输入邮箱地址"
+                                className="!h-12 !rounded-2xl"
+                                value={email}
+                                onChange={(event) =>
+                                  setEmail(event.target.value)
+                                }
+                                disabled={isSubmitting}
+                                autoComplete="email"
+                              />
+                            ) : null}
+
+                            <Input
+                              id="password"
+                              type="password"
+                              appearance="login"
+                              allowTogglePassword
+                              iconType="password"
+                              label="密码"
+                              placeholder={
+                                !isLoginMode
+                                  ? "请设置 6 位以上密码"
+                                  : "请输入密码"
+                              }
+                              className="!h-12 !rounded-2xl"
+                              value={password}
+                              onChange={(event) =>
+                                setPassword(event.target.value)
+                              }
+                              disabled={isSubmitting}
+                              autoComplete={
+                                !isLoginMode
+                                  ? "new-password"
+                                  : "current-password"
+                              }
+                              required
+                            />
+
+                            {!isLoginMode ? (
+                              <Input
+                                id="passwordConfirm"
+                                type="password"
+                                appearance="login"
+                                allowTogglePassword
+                                iconType="password"
+                                label="确认密码"
+                                placeholder="请再次输入密码"
+                                className="!h-12 !rounded-2xl"
+                                value={passwordConfirm}
+                                onChange={(event) =>
+                                  setPasswordConfirm(event.target.value)
+                                }
+                                disabled={isSubmitting}
+                                autoComplete="new-password"
+                                required
+                              />
+                            ) : null}
+                          </div>
+
+                          {error ? (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              className="overflow-hidden"
+                            >
+                              <SettingsAlert
+                                title={!isLoginMode ? "注册失败" : "登录失败"}
+                                message={
+                                  isParsedApiError(error)
+                                    ? error.message
+                                    : error
+                                }
+                                variant="error"
+                                className="!border-[var(--login-error-border)] !bg-[var(--login-error-bg)] !text-[var(--login-error-text)]"
+                              />
+                            </motion.div>
+                          ) : null}
+
+                          <Button
+                            type="submit"
+                            variant="primary"
+                            size="lg"
+                            className="group/btn relative !mt-4 !h-12 !w-full overflow-hidden rounded-2xl border-0 bg-gradient-to-r from-[var(--login-brand-button-start)] to-[var(--login-brand-button-end)] text-base font-semibold text-[var(--login-button-text)] shadow-[0_18px_38px_hsl(214_100%_40%_/_0.22)] hover:from-[var(--login-brand-button-start-hover)] hover:to-[var(--login-brand-button-end-hover)]"
+                            disabled={isSubmitting}
+                          >
+                            <div className="relative z-10 flex items-center justify-center gap-2">
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>正在处理...</span>
+                                </>
+                              ) : (
+                                <span>
+                                  {!isLoginMode
+                                    ? "完成注册并登录"
+                                    : "授权进入工作台"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                          </Button>
+
+                          <div className="pt-1 text-center">
+                            <button
+                              type="button"
+                              onClick={handleToggleMode}
+                              className="group/link cursor-pointer text-sm text-[hsl(220_18%_40%)] transition-colors"
+                              disabled={isSubmitting}
+                            >
+                              {isLoginMode ? (
+                                <>
+                                  没有账号？{" "}
+                                  <span className="font-semibold text-sky-600 group-hover/link:underline">
+                                    点击注册
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  已有账号？{" "}
+                                  <span className="font-semibold text-sky-600 group-hover/link:underline">
+                                    返回登录
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </Stack>
+                    </Paper>
+                  </motion.div>
+                </Box>
               </div>
-            </form>
-          </div>
+            </div>
+          </Paper>
         </motion.div>
-
-        {/* Footer info */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 text-center font-mono text-xs uppercase tracking-wider text-[var(--login-text-muted)]"
-        >
-          Secure Connection Established via DSA-V3-TLS
-        </motion.p>
       </div>
 
       <style
@@ -358,6 +416,20 @@ const LoginPage: React.FC = () => {
         @keyframes shimmer {
           100% {
             transform: translateX(100%);
+          }
+        }
+        .login-promo-col {
+          order: 2;
+        }
+        .login-form-col {
+          order: 1;
+        }
+        @media (min-width: 1024px) {
+          .login-promo-col {
+            order: 1;
+          }
+          .login-form-col {
+            order: 2;
           }
         }
       `,

@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Alert, Button, Group, Text } from '@mantine/core';
 import type { ParsedApiError } from '../../api/error';
 
 interface ApiErrorAlertProps {
@@ -21,25 +22,29 @@ export const ApiErrorAlert: React.FC<ApiErrorAlertProps> = ({
   const showDetails = error.rawMessage.trim() && error.rawMessage.trim() !== error.message.trim();
 
   return (
-    <div
+    <Alert
       className={`rounded-xl border border-[hsl(var(--color-danger-alert-border)/0.3)] bg-[hsl(var(--color-danger-alert-bg)/0.1)] px-4 py-3 text-[hsl(var(--color-danger-alert-text))] ${className}`}
       role="alert"
+      radius="xl"
+      variant="light"
     >
-      <div className="flex items-start justify-between gap-3">
+      <Group align="flex-start" justify="space-between" gap="md">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{error.title}</p>
-          <p className="mt-1 text-xs opacity-90">{error.message}</p>
+          <Text size="sm" fw={600}>{error.title}</Text>
+          <Text size="xs" mt={4} className="opacity-90">{error.message}</Text>
         </div>
         {onDismiss ? (
-          <button
+          <Button
             type="button"
-            className="shrink-0 rounded-md border border-[hsl(var(--color-danger-alert-border)/0.3)] bg-[hsl(var(--color-danger-alert-bg)/0.1)] px-2 py-1 text-[11px] text-[hsl(var(--color-danger-alert-text))] transition hover:bg-[hsl(var(--color-danger-alert-bg)/0.15)]"
+            size="compact-xs"
+            variant="light"
+            color="red"
             onClick={onDismiss}
           >
             {dismissLabel}
-          </button>
+          </Button>
         ) : null}
-      </div>
+      </Group>
       {showDetails ? (
         <details className="mt-3 rounded-lg border border-subtle bg-surface-2 px-3 py-2">
           <summary className="cursor-pointer text-xs text-[hsl(var(--color-danger-alert-text))] opacity-90">查看详情</summary>
@@ -49,14 +54,17 @@ export const ApiErrorAlert: React.FC<ApiErrorAlertProps> = ({
         </details>
       ) : null}
       {actionLabel && onAction ? (
-        <button
+        <Button
           type="button"
-          className="mt-3 inline-flex items-center justify-center rounded-md border border-[hsl(var(--color-danger-alert-border)/0.3)] bg-[hsl(var(--color-danger-alert-bg)/0.1)] px-3 py-1.5 text-xs font-medium text-[hsl(var(--color-danger-alert-text))] transition hover:bg-[hsl(var(--color-danger-alert-bg)/0.15)]"
+          mt="md"
+          size="xs"
+          variant="light"
+          color="red"
           onClick={onAction}
         >
           {actionLabel}
-        </button>
+        </Button>
       ) : null}
-    </div>
+    </Alert>
   );
 };

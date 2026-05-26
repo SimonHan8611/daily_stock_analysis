@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from '../LoginPage';
+import { ThemeProvider } from '../../components/theme/ThemeProvider';
 
 const { navigate, useSearchParamsMock, useAuthMock } = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -21,6 +22,12 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+const renderLoginPage = () => render(
+  <ThemeProvider>
+    <LoginPage />
+  </ThemeProvider>,
+);
+
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,50 +35,80 @@ describe('LoginPage', () => {
     useSearchParamsMock.mockReturnValue([new URLSearchParams('redirect=%2Fsettings')]);
   });
 
-  it('blocks first-time setup when confirmation does not match', async () => {
+  it('blocks registration when confirmation does not match', async () => {
     const login = vi.fn();
+    const register = vi.fn();
     useAuthMock.mockReturnValue({
       login,
-      passwordSet: false,
-      setupState: 'no_password',
+      register,
     });
 
-    render(<LoginPage />);
+    renderLoginPage();
 
-    fireEvent.change(screen.getByLabelText('管理员密码'), { target: { value: 'passwd6' } });
+    fireEvent.click(screen.getByRole('button', { name: /点击注册/i }));
+    fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'tester' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'passwd6' } });
     fireEvent.change(screen.getByLabelText('确认密码'), { target: { value: 'passwd7' } });
-    fireEvent.click(screen.getByRole('button', { name: '完成设置并登录' }));
+    fireEvent.click(screen.getByRole('button', { name: '完成注册并登录' }));
 
     expect(await screen.findByText('两次输入的密码不一致')).toBeInTheDocument();
+    expect(register).not.toHaveBeenCalled();
     expect(login).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('管理员密码')).toHaveAttribute('data-appearance', 'login');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('data-appearance', 'login');
     expect(screen.getByLabelText('确认密码')).toHaveAttribute('data-appearance', 'login');
   });
 
   it('navigates to redirect after a successful login', async () => {
+    const login = vi.fn().mockResolvedValue({ success: true });
     useAuthMock.mockReturnValue({
-      login: vi.fn().mockResolvedValue({ success: true }),
-      passwordSet: true,
-      setupState: 'enabled',
+      login,
+      register: vi.fn(),
     });
 
-    render(<LoginPage />);
+    renderLoginPage();
 
-    fireEvent.change(screen.getByLabelText('登录密码'), { target: { value: 'passwd6' } });
+    fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'tester' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'passwd6' } });
     fireEvent.click(screen.getByRole('button', { name: '授权进入工作台' }));
 
+    await waitFor(() => expect(login).toHaveBeenCalledWith('tester', 'passwd6'));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/settings', { replace: true }));
-    expect(screen.getByLabelText('登录密码')).toHaveAttribute('data-appearance', 'login');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('data-appearance', 'login');
+  });
+
+  it('logs in automatically after a successful registration', async () => {
+    const register = vi.fn().mockResolvedValue({ success: true });
+    const login = vi.fn().mockResolvedValue({ success: true });
+    useAuthMock.mockReturnValue({
+      login,
+      register,
+    });
+
+    renderLoginPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /点击注册/i }));
+    fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'tester' } });
+    fireEvent.change(screen.getByLabelText('邮箱（可选）'), { target: { value: 'tester@example.com' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'passwd6' } });
+    fireEvent.change(screen.getByLabelText('确认密码'), { target: { value: 'passwd6' } });
+    fireEvent.click(screen.getByRole('button', { name: '完成注册并登录' }));
+
+    await waitFor(() => {
+      expect(register).toHaveBeenCalledWith('tester', 'passwd6', 'passwd6', 'tester@example.com');
+    });
+    await waitFor(() => {
+      expect(login).toHaveBeenCalledWith('tester', 'passwd6');
+    });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/settings', { replace: true }));
   });
 
   it('does not override login theme tokens inline so light mode can take effect', () => {
     useAuthMock.mockReturnValue({
       login: vi.fn(),
-      passwordSet: true,
-      setupState: 'enabled',
+      register: vi.fn(),
     });
 
-    const { container } = render(<LoginPage />);
+    const { container } = renderLoginPage();
     const pageRoot = container.firstElementChild as HTMLElement | null;
 
     expect(pageRoot).not.toBeNull();

@@ -6,3 +6,4 @@ export * from "./SettingsLoading";
 export * from "./SettingsSectionCard";
 export * from "./SettingsCategoryNav";
 export * from "./UserManagementCard";
+export * from "./AccountSecurityCard";

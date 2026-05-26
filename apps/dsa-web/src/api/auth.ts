@@ -1,4 +1,4 @@
-import apiClient from './index';
+import apiClient from "./index";
 
 export type AuthStatusResponse = {
   authEnabled: boolean;
@@ -17,29 +17,52 @@ export type UserInfoResponse = {
 
 export const authApi = {
   async getStatus(): Promise<AuthStatusResponse> {
-    const { data } = await apiClient.get<AuthStatusResponse>('/api/v1/auth/status');
+    const { data } = await apiClient.get<AuthStatusResponse>(
+      "/api/v1/auth/status",
+    );
     return data;
   },
 
   async login(username: string, password: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/login', { username, password });
+    await apiClient.post("/api/v1/auth/login", { username, password });
   },
 
-  async register(username: string, password: string, passwordConfirm: string, email?: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/register', { 
-      username, 
-      password, 
+  async register(
+    username: string,
+    password: string,
+    passwordConfirm: string,
+    email?: string,
+  ): Promise<void> {
+    await apiClient.post("/api/v1/auth/register", {
+      username,
+      password,
       passwordConfirm,
-      email
+      email,
     });
   },
 
   async getMe(): Promise<UserInfoResponse> {
-    const { data } = await apiClient.get<UserInfoResponse>('/api/v1/auth/me');
+    const { data } = await apiClient.get<UserInfoResponse>("/api/v1/auth/me");
     return data;
   },
 
   async logout(): Promise<void> {
-    await apiClient.post('/api/v1/auth/logout');
+    await apiClient.post("/api/v1/auth/logout");
+  },
+
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+    newPasswordConfirm: string,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(
+      "/api/v1/auth/change-password",
+      {
+        currentPassword,
+        newPassword,
+        newPasswordConfirm,
+      },
+    );
+    return data;
   },
 };

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from api.deps import get_db, get_current_user, require_role
@@ -31,6 +32,11 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str = Field(..., description="Username")
     password: str = Field(..., description="Password")
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=6, alias="currentPassword")
+    new_password: str = Field(..., min_length=6, alias="newPassword")
+    new_password_confirm: str = Field(..., min_length=6, alias="newPasswordConfirm")
 
 class UserInfoResponse(BaseModel):
     id: int
@@ -69,6 +75,7 @@ async def register_user(request: Request, body: RegisterRequest, db: Session = D
     """Register a new user. The first user gets 'admin' role, others get 'user' role."""
     client_ip = get_client_ip(request)
     logger.info(f"[Auth] Registration attempt for username: '{body.username}', email: '{body.email}' from IP: {client_ip}")
+    normalized_email = body.email.strip().lower() if body.email and body.email.strip() else None
 
     if body.password != body.password_confirm:
         logger.warning(f"[Auth] Registration failed for '{body.username}': Passwords do not match.")
@@ -78,6 +85,12 @@ async def register_user(request: Request, body: RegisterRequest, db: Session = D
     if existing_user:
         logger.warning(f"[Auth] Registration failed: Username '{body.username}' already exists.")
         return JSONResponse(status_code=400, content={"error": "username_taken", "message": "Username already exists"})
+
+    if normalized_email:
+        existing_email_user = db.execute(select(User).where(User.email == normalized_email)).scalar_one_or_none()
+        if existing_email_user:
+            logger.warning(f"[Auth] Registration failed: Email '{normalized_email}' already exists.")
+            return JSONResponse(status_code=400, content={"error": "email_taken", "message": "Email already exists"})
         
     # Check if this is the first user
     user_count = db.execute(select(func.count(User.id))).scalar()
@@ -91,13 +104,30 @@ async def register_user(request: Request, body: RegisterRequest, db: Session = D
         
     new_user = User(
         username=body.username,
-        email=body.email,
+        email=normalized_email,
         password_hash=get_password_hash(body.password),
         role_id=role.id,
         is_active=True
     )
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        logger.warning(
+            f"[Auth] Registration failed during commit for '{body.username}' with email '{normalized_email}': {exc}"
+        )
+        message = "Registration failed due to duplicate data"
+        error = "duplicate_user"
+
+        if "users.email" in str(exc.orig):
+            message = "Email already exists"
+            error = "email_taken"
+        elif "users.username" in str(exc.orig):
+            message = "Username already exists"
+            error = "username_taken"
+
+        return JSONResponse(status_code=400, content={"error": error, "message": message})
     
     logger.info(f"[Auth] Registration successful for '{body.username}'. Assigned ID: {new_user.id}, Role: {role_name}.")
     return JSONResponse(status_code=201, content={"message": "User registered successfully", "user_id": new_user.id})
@@ -160,6 +190,47 @@ async def auth_logout(request: Request):
     resp = Response(status_code=204)
     resp.delete_cookie(key=COOKIE_NAME, path="/")
     return resp
+
+@router.post("/change-password", summary="Change current user password")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_id = int(current_user["user_id"])
+    logger.info(f"[Auth] Password change attempt for User ID: {user_id} from IP: {get_client_ip(request)}")
+
+    if body.new_password != body.new_password_confirm:
+        logger.warning(f"[Auth] Password change failed for User ID {user_id}: new passwords do not match.")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "password_mismatch", "message": "New passwords do not match"},
+        )
+
+    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+    if not user:
+        logger.error(f"[Auth] Password change failed: User ID {user_id} not found.")
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(body.current_password, user.password_hash):
+        logger.warning(f"[Auth] Password change failed for User ID {user_id}: current password invalid.")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_current_password", "message": "Current password is incorrect"},
+        )
+
+    if body.current_password == body.new_password:
+        logger.warning(f"[Auth] Password change failed for User ID {user_id}: new password matches old password.")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "password_unchanged", "message": "New password must be different from current password"},
+        )
+
+    user.password_hash = get_password_hash(body.new_password)
+    db.commit()
+    logger.info(f"[Auth] Password change successful for User ID: {user_id}.")
+    return {"message": "Password updated successfully"}
 
 @router.get("/status", summary="Get authentication status")
 async def auth_status(request: Request):

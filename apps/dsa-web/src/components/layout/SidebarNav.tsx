@@ -1,17 +1,27 @@
 import React, { useState } from "react";
-import { motion } from "motion/react";
+import {
+  Box,
+  Button,
+  Divider,
+  Group,
+  NavLink as MantineNavLink,
+  Paper,
+  Stack,
+  Text,
+  ThemeIcon,
+} from "@mantine/core";
 import {
   BarChart3,
   BriefcaseBusiness,
   Home,
   LogOut,
   MessageSquareQuote,
+  Repeat2,
   Settings2,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAgentChatStore } from "../../stores/agentChatStore";
-import { cn } from "../../utils/cn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { StatusDot } from "../common/StatusDot";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -25,130 +35,284 @@ type NavItem = {
   key: string;
   label: string;
   to: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   exact?: boolean;
   badge?: "completion";
+  section: "workspace" | "system";
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "home", label: "首页", to: "/", icon: Home, exact: true },
+  {
+    key: "home",
+    label: "工作台",
+    to: "/",
+    icon: Home,
+    exact: true,
+    section: "workspace",
+  },
   {
     key: "chat",
-    label: "问股",
+    label: "Agent 问股",
     to: "/chat",
     icon: MessageSquareQuote,
     badge: "completion",
+    section: "workspace",
+  },
+  {
+    key: "backtest",
+    label: "回测验证",
+    to: "/backtest",
+    icon: BarChart3,
+    section: "workspace",
   },
   {
     key: "portfolio",
-    label: "持仓",
+    label: "持仓管理",
     to: "/portfolio",
     icon: BriefcaseBusiness,
+    section: "workspace",
   },
-  { key: "backtest", label: "回测", to: "/backtest", icon: BarChart3 },
-  { key: "settings", label: "设置", to: "/settings", icon: Settings2 },
+  {
+    key: "settings",
+    label: "系统设置",
+    to: "/settings",
+    icon: Settings2,
+    section: "system",
+  },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   collapsed = false,
   onNavigate,
 }) => {
-  const { authEnabled, logout } = useAuth();
+  const { authEnabled, logout, user } = useAuth();
+  const location = useLocation();
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const navItems = NAV_ITEMS;
+  const workspaceItems = NAV_ITEMS.filter(
+    (item) => item.section === "workspace",
+  );
+  const systemItems = NAV_ITEMS.filter((item) => item.section === "system");
+
+  const isItemActive = (item: NavItem) => {
+    if (item.exact || item.to === "/") {
+      return location.pathname === item.to;
+    }
+
+    return (
+      location.pathname === item.to ||
+      location.pathname.startsWith(`${item.to}/`)
+    );
+  };
+
+  const renderNavItems = (items: NavItem[]) =>
+    items.map((item) => {
+      const { key, label, to, icon: Icon, badge } = item;
+      const isActive = isItemActive(item);
+
+      return (
+        <MantineNavLink
+          key={key}
+          component={Link}
+          to={to}
+          active={isActive}
+          variant="filled"
+          onClick={onNavigate}
+          aria-label={label}
+          aria-current={isActive ? "page" : undefined}
+          leftSection={
+            <Box pos="relative">
+              <Icon size={18} />
+              {badge === "completion" && completionBadge ? (
+                <StatusDot
+                  tone="info"
+                  data-testid="chat-completion-badge"
+                  style={{
+                    position: "absolute",
+                    right: collapsed ? -4 : -10,
+                    top: -4,
+                  }}
+                  aria-label="问股有新消息"
+                />
+              ) : null}
+            </Box>
+          }
+          label={collapsed ? undefined : label}
+          className="sidebar-nav-link"
+          styles={(theme) => ({
+            root: {
+              borderRadius: 14,
+              paddingInline: collapsed ? 10 : 14,
+              minHeight: 46,
+              justifyContent: collapsed ? "center" : undefined,
+              backgroundColor: isActive ? "var(--nav-active-bg)" : "transparent",
+              border: `1px solid ${isActive ? "var(--nav-active-border)" : "transparent"}`,
+              color: isActive
+                ? "var(--nav-icon-active)"
+                : "hsl(var(--secondary-text))",
+              boxShadow: isActive
+                ? "0 10px 20px hsl(var(--primary) / 0.08)"
+                : "none",
+            },
+            section: {
+              marginInlineEnd: collapsed ? 0 : undefined,
+            },
+            body: {
+              display: collapsed ? "none" : "block",
+            },
+            label: {
+              fontWeight: 600,
+              fontSize: theme.fontSizes.sm,
+            },
+          })}
+        />
+      );
+    });
 
   return (
-    <div className="flex h-full flex-col">
-      <div
-        className={cn(
-          "mb-4 flex items-center gap-2 px-1",
-          collapsed ? "justify-center" : "",
-        )}
+    <Stack
+      h="100%"
+      mih={0}
+      gap="md"
+      className="shell-sidebar-root overflow-hidden"
+      p="lg"
+    >
+      <Group
+        className="shell-sidebar-brand-block"
+        gap="sm"
+        wrap="nowrap"
+        justify={collapsed ? "center" : "flex-start"}
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient text-[hsl(var(--primary-foreground))] shadow-[0_12px_28px_var(--nav-brand-shadow)]">
-          <BarChart3 className="h-5 w-5" />
-        </div>
-        {!collapsed ? (
-          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-            DSA
-          </p>
-        ) : null}
-      </div>
-
-      <nav className="flex flex-1 flex-col gap-1.5" aria-label="主导航">
-        {navItems.map(({ key, label, to, icon: Icon, exact, badge }) => (
-          <NavLink
-            key={key}
-            to={to}
-            end={exact}
-            onClick={onNavigate}
-            aria-label={label}
-            className={({ isActive }) =>
-              cn(
-                "group relative flex items-center gap-3 border-y border-x-0 text-sm transition-all",
-                "h-[var(--nav-item-height)]",
-                collapsed
-                  ? "justify-center px-0"
-                  : "px-[var(--nav-item-padding-x)]",
-                isActive
-                  ? "border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] text-[hsl(var(--primary))] font-medium"
-                  : "border-transparent text-secondary-text hover:bg-[var(--nav-hover-bg)] hover:text-foreground",
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="absolute top-0 bottom-0 left-0 w-[var(--nav-indicator-width)] bg-[var(--nav-indicator-bg)] shadow-[0_0_10px_var(--nav-indicator-shadow)]"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                )}
-                <Icon
-                  className={cn(
-                    "ml-1 h-5 w-5 shrink-0",
-                    isActive ? "text-[var(--nav-icon-active)]" : "text-current",
-                  )}
-                />
-                {!collapsed ? <span className="truncate">{label}</span> : null}
-                {badge === "completion" && completionBadge ? (
-                  <StatusDot
-                    tone="info"
-                    data-testid="chat-completion-badge"
-                    className={cn(
-                      "absolute right-3 border-2 border-background shadow-[0_0_10px_var(--nav-indicator-shadow)]",
-                      collapsed ? "right-2 top-2" : "",
-                    )}
-                    aria-label="问股有新消息"
-                  />
-                ) : null}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="mt-4 mb-2">
-        <ThemeToggle variant="nav" collapsed={collapsed} />
-      </div>
-
-      {authEnabled ? (
-        <button
-          type="button"
-          onClick={() => setShowLogoutConfirm(true)}
-          className={cn(
-            "mt-5 flex h-11 w-full cursor-pointer select-none items-center gap-3 rounded-2xl border border-transparent px-3 text-sm text-secondary-text transition-all hover:border-border/70 hover:bg-hover hover:text-foreground",
-            collapsed ? "justify-center px-2" : "",
-          )}
+        <ThemeIcon
+          className="shell-sidebar-logo"
+          size={collapsed ? 42 : 46}
+          radius="md"
         >
-          <LogOut className="h-5 w-5 shrink-0" />
-          {!collapsed ? <span>退出</span> : null}
-        </button>
+          <BarChart3 size={collapsed ? 20 : 22} />
+        </ThemeIcon>
+        {collapsed ? null : (
+          <Box miw={0}>
+            <Text fw={800} size="lg" lh={1.1}>
+              DSA
+            </Text>
+            <Text size="xs" c="dimmed" mt={3}>
+              股票分析系统
+            </Text>
+          </Box>
+        )}
+      </Group>
+
+      <Box
+        component="nav"
+        aria-label="主导航"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pr-1"
+      >
+        <Stack gap="md">
+          <Paper
+            className="shell-sidebar-section"
+            radius="lg"
+            p="xs"
+            shadow="none"
+          >
+            {collapsed ? null : (
+              <Text className="shell-sidebar-caption">Workspace</Text>
+            )}
+            <Stack gap={4}>{renderNavItems(workspaceItems)}</Stack>
+          </Paper>
+
+          <Paper
+            className="shell-sidebar-section"
+            radius="lg"
+            p="xs"
+            shadow="none"
+          >
+            {collapsed ? null : (
+              <Text className="shell-sidebar-caption">System</Text>
+            )}
+            <Stack gap={4}>{renderNavItems(systemItems)}</Stack>
+          </Paper>
+        </Stack>
+      </Box>
+
+      <Paper className="shell-sidebar-section" radius="lg" p="xs" shadow="none">
+        <ThemeToggle variant="nav" collapsed={collapsed} />
+      </Paper>
+
+      {!collapsed && user ? (
+        <Paper className="shell-sidebar-user" radius="lg" p="sm" shadow="none">
+          <Group align="center" gap="sm" wrap="nowrap">
+            <ThemeIcon size={40} radius="xl" variant="light" color="brand">
+              {user.username.slice(0, 1).toUpperCase()}
+            </ThemeIcon>
+            <Box miw={0}>
+              <Text size="sm" fw={600} truncate>
+                {user.username}
+              </Text>
+              <Text size="xs" c="dimmed" truncate>
+                {user.role === "admin" ? "系统管理员" : "投资分析用户"}
+              </Text>
+            </Box>
+          </Group>
+          <Divider my="sm" />
+          <Button
+            type="button"
+            variant="subtle"
+            color="red"
+            justify="flex-start"
+            leftSection={<LogOut size={18} />}
+            onClick={() => setShowLogoutConfirm(true)}
+            aria-label="退出"
+            px={8}
+          >
+            退出
+          </Button>
+        </Paper>
+      ) : null}
+
+      {!collapsed && !user ? (
+        <Paper className="shell-sidebar-user" radius="lg" p="sm" shadow="none">
+          <Group align="center" gap="sm" wrap="nowrap">
+            <ThemeIcon size={46} radius="xl" variant="light" color="blue">
+              <Repeat2 size={18} />
+            </ThemeIcon>
+            <Box miw={0}>
+              <Text size="sm" fw={700} truncate>
+                张三
+              </Text>
+              <Text size="xs" c="dimmed" truncate>
+                量化分析师
+              </Text>
+            </Box>
+          </Group>
+          <Divider my="sm" />
+          <Button
+            type="button"
+            variant="subtle"
+            color="gray"
+            justify="flex-start"
+            leftSection={<LogOut size={18} />}
+            onClick={() => setShowLogoutConfirm(true)}
+            aria-label="退出登录"
+            px={8}
+          >
+            退出登录
+          </Button>
+        </Paper>
+      ) : null}
+
+      {authEnabled && (collapsed || !user) ? (
+        <Button
+          type="button"
+          variant="subtle"
+          color="red"
+          justify={collapsed ? "center" : "flex-start"}
+          leftSection={<LogOut size={18} />}
+          onClick={() => setShowLogoutConfirm(true)}
+          aria-label="退出"
+        >
+          {collapsed ? null : "退出"}
+        </Button>
       ) : null}
 
       <ConfirmDialog
@@ -165,6 +329,6 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         }}
         onCancel={() => setShowLogoutConfirm(false)}
       />
-    </div>
+    </Stack>
   );
 };

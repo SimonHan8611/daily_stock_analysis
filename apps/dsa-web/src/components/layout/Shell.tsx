@@ -1,11 +1,9 @@
-import type React from 'react';
-import { useEffect, useState } from 'react';
-import { Menu } from 'lucide-react';
-import { Outlet } from 'react-router-dom';
-import { Drawer } from '../common/Drawer';
-import { SidebarNav } from './SidebarNav';
-import { cn } from '../../utils/cn';
-import { ThemeToggle } from '../theme/ThemeToggle';
+import type React from "react";
+import { useEffect, useState } from "react";
+import { ActionIcon, AppShell, Box, Drawer } from "@mantine/core";
+import { Menu } from "lucide-react";
+import { Outlet } from "react-router-dom";
+import { SidebarNav } from "./SidebarNav";
 
 type ShellProps = {
   children?: React.ReactNode;
@@ -13,7 +11,6 @@ type ShellProps = {
 
 export const Shell: React.FC<ShellProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const collapsed = false;
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -26,55 +23,64 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
       }
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [mobileOpen]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="pointer-events-none fixed inset-x-0 top-3 z-40 flex items-start justify-between px-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/85 text-secondary-text shadow-soft-card backdrop-blur-md transition-colors hover:bg-hover hover:text-foreground"
-          aria-label="打开导航菜单"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <div className="pointer-events-auto">
-          <ThemeToggle />
-        </div>
-      </div>
+    <AppShell
+      padding={0}
+      navbar={{
+        width: 224,
+        breakpoint: "lg",
+        collapsed: { mobile: true },
+      }}
+      styles={{
+        root: {
+          background: "hsl(214 18% 96%)",
+        },
+        navbar: {
+          background: "hsl(0 0% 100% / 0.98)",
+          borderRight: "1px solid hsl(220 16% 90%)",
+        },
+        main: {
+          background: "hsl(214 18% 96%)",
+        },
+      }}
+    >
+      <AppShell.Navbar p={0} visibleFrom="lg">
+        <SidebarNav onNavigate={() => setMobileOpen(false)} />
+      </AppShell.Navbar>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[1680px] px-3 py-3 sm:px-4 sm:py-4 lg:px-5">
-        <aside
-          className={cn(
-            'sticky top-3 z-40 hidden shrink-0 overflow-visible rounded-[1.5rem] border border-[var(--shell-sidebar-border)] bg-card/72 p-2 shadow-soft-card backdrop-blur-sm transition-[width] duration-200 lg:flex',
-            'max-h-[calc(100vh-1.5rem)] self-start sm:top-4 sm:max-h-[calc(100vh-2rem)]',
-            collapsed ? 'w-[64px]' : 'w-[116px]'
-          )}
-          aria-label="桌面侧边导航"
-        >
-          <SidebarNav collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
-        </aside>
-
-        <main className="min-h-0 min-w-0 flex-1 pt-14 lg:pl-3 lg:pt-0 touch-pan-y">
+      <AppShell.Main>
+        <Box className="shell-main-body touch-pan-y">
+          <ActionIcon
+            type="button"
+            variant="light"
+            size="lg"
+            hiddenFrom="lg"
+            onClick={() => setMobileOpen(true)}
+            aria-label="打开导航菜单"
+            className="fixed left-3 top-3 z-[120]"
+          >
+            <Menu size={18} />
+          </ActionIcon>
           {children ?? <Outlet />}
-        </main>
-      </div>
+        </Box>
+      </AppShell.Main>
 
       <Drawer
-        isOpen={mobileOpen}
+        opened={mobileOpen}
         onClose={() => setMobileOpen(false)}
         title="导航菜单"
-        width="max-w-xs"
-        zIndex={90}
-        side="left"
+        position="left"
+        size={256}
+        overlayProps={{ opacity: 0.45, blur: 3 }}
       >
         <SidebarNav onNavigate={() => setMobileOpen(false)} />
       </Drawer>
-    </div>
+    </AppShell>
   );
 };

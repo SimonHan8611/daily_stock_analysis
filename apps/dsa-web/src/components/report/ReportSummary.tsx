@@ -1,4 +1,5 @@
 import React from 'react';
+import { Paper, Stack, Text } from '@mantine/core';
 import type { AnalysisResult, AnalysisReport } from '../../types/analysis';
 import { ReportOverview } from './ReportOverview';
 import { ReportStrategy } from './ReportStrategy';
@@ -33,7 +34,7 @@ export const ReportSummary: React.FC<ReportSummaryProps> = ({
   );
 
   return (
-    <div className="space-y-5 pb-8 animate-fade-in">
+    <Stack gap="lg" className="animate-fade-in pb-8">
       {/* 概览区（首屏） */}
       <ReportOverview
         meta={meta}
@@ -53,10 +54,12 @@ export const ReportSummary: React.FC<ReportSummaryProps> = ({
 
       {/* 分析模型标记（Issue #528）— 报告末尾 */}
       {shouldShowModel && (
-        <p className="px-1 text-xs text-muted-text">
-          {text.analysisModel}: {modelUsed}
-        </p>
+        <Paper radius="xl" shadow="none" className="glass-panel px-3 py-2">
+          <Text className="px-1 text-xs text-muted-text">
+            {text.analysisModel}: {modelUsed}
+          </Text>
+        </Paper>
       )}
-    </div>
+    </Stack>
   );
 };
