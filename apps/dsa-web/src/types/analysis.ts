@@ -208,6 +208,27 @@ export interface HistoryListResponse {
   items: HistoryItem[];
 }
 
+export interface HistoryTrendItem {
+  id?: number;
+  queryId: string;
+  stockCode: string;
+  stockName?: string;
+  createdAt?: string;
+  analysisResult?: string;
+  sentimentScore?: number;
+  operationAdvice?: string;
+  trendPrediction?: string;
+  changePct?: number;
+  volumeRatio?: number;
+  turnoverRate?: number;
+}
+
+export interface HistoryTrendResponse {
+  stockCode: string;
+  total: number;
+  items: HistoryTrendItem[];
+}
+
 /** News item */
 export interface NewsIntelItem {
   title: string;

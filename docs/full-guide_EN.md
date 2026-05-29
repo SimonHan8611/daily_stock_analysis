@@ -293,6 +293,10 @@ Default schedule: Every weekday at **18:00 (Beijing Time)** automatic execution.
 | `MARKET_REVIEW_REGION` | Market review region: cn (A-shares), hk (HK stocks), us (US stocks), both (all three markets) | `cn` |
 | `SCHEDULE_ENABLED` | Enable scheduled tasks | `false` |
 | `SCHEDULE_TIME` | Scheduled execution time | `18:00` |
+| `AUTO_HISTORY_ANALYSIS_ENABLED` | Enable daily API-server auto analysis for stocks found in analysis history | `false` |
+| `AUTO_HISTORY_ANALYSIS_TIME` | Daily auto history analysis trigger time | `14:45` |
+| `AUTO_HISTORY_ANALYSIS_LIMIT` | Max recently analyzed distinct historical stocks per auto run | `20` |
+| `AUTO_HISTORY_ANALYSIS_NOTIFY` | Whether auto history analysis tasks send notifications | `false` |
 | `LOG_DIR` | Log directory | `./logs` |
 
 > Behavior notes:

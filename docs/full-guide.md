@@ -611,6 +611,10 @@ python main.py --schedule --no-run-immediately
 | `SCHEDULE_ENABLED` | 是否启用定时任务 | `false` | `true` |
 | `SCHEDULE_TIME` | 每日执行时间 (HH:MM) | `18:00` | `09:30` |
 | `SCHEDULE_RUN_IMMEDIATELY` | 启动服务时是否立即运行一次 | `true` | `false` |
+| `AUTO_HISTORY_ANALYSIS_ENABLED` | API 服务中是否启用历史股票每日自动分析 | `false` | `true` |
+| `AUTO_HISTORY_ANALYSIS_TIME` | 历史股票每日自动分析时间 (HH:MM) | `14:45` | `14:45` |
+| `AUTO_HISTORY_ANALYSIS_LIMIT` | 每次最多从最近历史记录中取多少只去重股票 | `20` | `20` |
+| `AUTO_HISTORY_ANALYSIS_NOTIFY` | 历史股票自动分析是否发送通知 | `false` | `true` |
 | `TRADING_DAY_CHECK_ENABLED` | 交易日检查：非交易日跳过执行；设为 `false` 可强制执行 | `true` | `false` |
 
 例如在 Docker 中配置：

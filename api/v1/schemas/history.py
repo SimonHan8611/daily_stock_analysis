@@ -63,6 +63,31 @@ class HistoryListResponse(BaseModel):
         }
 
 
+class HistoryTrendItem(BaseModel):
+    """单只股票历史分析趋势条目"""
+
+    id: Optional[int] = Field(None, description="分析历史记录主键 ID")
+    query_id: str = Field(..., description="分析记录关联 query_id")
+    stock_code: str = Field(..., description="股票代码")
+    stock_name: Optional[str] = Field(None, description="股票名称")
+    created_at: Optional[str] = Field(None, description="创建时间")
+    analysis_result: Optional[str] = Field(None, description="组合后的历史分析结论")
+    sentiment_score: Optional[int] = Field(None, description="情绪评分")
+    operation_advice: Optional[str] = Field(None, description="操作建议")
+    trend_prediction: Optional[str] = Field(None, description="趋势预测")
+    change_pct: Optional[float] = Field(None, description="分析时涨跌幅(%)")
+    volume_ratio: Optional[float] = Field(None, description="分析时量比")
+    turnover_rate: Optional[float] = Field(None, description="分析时换手率(%)")
+
+
+class HistoryTrendResponse(BaseModel):
+    """单只股票历史分析趋势响应"""
+
+    stock_code: str = Field(..., description="股票代码")
+    total: int = Field(..., description="趋势条目数量")
+    items: List[HistoryTrendItem] = Field(default_factory=list, description="趋势条目")
+
+
 class DeleteHistoryRequest(BaseModel):
     """删除历史记录请求"""
 

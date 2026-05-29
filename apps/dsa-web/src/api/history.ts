@@ -4,6 +4,8 @@ import type {
   HistoryListResponse,
   HistoryItem,
   HistoryFilters,
+  HistoryTrendResponse,
+  HistoryTrendItem,
   AnalysisReport,
   NewsIntelResponse,
   NewsIntelItem,
@@ -49,6 +51,23 @@ export const historyApi = {
   getDetail: async (recordId: number): Promise<AnalysisReport> => {
     const response = await apiClient.get<Record<string, unknown>>(`/api/v1/history/${recordId}`);
     return toCamelCase<AnalysisReport>(response.data);
+  },
+
+  /**
+   * 获取单只股票的历史分析趋势
+   * @param stockCode 股票代码
+   * @param limit 返回数量限制
+   */
+  getTrend: async (stockCode: string, limit = 20): Promise<HistoryTrendResponse> => {
+    const response = await apiClient.get<Record<string, unknown>>('/api/v1/history/trend', {
+      params: { stock_code: stockCode, limit },
+    });
+    const data = toCamelCase<HistoryTrendResponse>(response.data);
+    return {
+      stockCode: data.stockCode,
+      total: data.total,
+      items: (data.items || []).map(item => toCamelCase<HistoryTrendItem>(item)),
+    };
   },
 
   /**

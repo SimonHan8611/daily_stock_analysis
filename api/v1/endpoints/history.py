@@ -18,6 +18,8 @@ from api.deps import get_database_manager
 from api.v1.schemas.history import (
     HistoryListResponse,
     HistoryItem,
+    HistoryTrendItem,
+    HistoryTrendResponse,
     DeleteHistoryRequest,
     DeleteHistoryResponse,
     NewsIntelItem,
@@ -171,6 +173,58 @@ def delete_history_records(
                 "error": "internal_error",
                 "message": f"删除历史记录失败: {str(e)}"
             }
+        )
+
+
+@router.get(
+    "/trend",
+    response_model=HistoryTrendResponse,
+    responses={
+        200: {"description": "历史趋势"},
+        500: {"description": "服务器错误", "model": ErrorResponse},
+    },
+    summary="获取单只股票历史分析趋势",
+    description="按股票代码返回近期历史分析结论、分数和分析时行情指标",
+)
+def get_history_trend(
+    stock_code: str = Query(..., description="股票代码"),
+    limit: int = Query(20, ge=1, le=100, description="返回数量"),
+    db_manager: DatabaseManager = Depends(get_database_manager),
+) -> HistoryTrendResponse:
+    """获取单只股票历史分析趋势。"""
+    try:
+        service = HistoryService(db_manager)
+        result = service.get_history_trend(stock_code=stock_code, limit=limit)
+        items = [
+            HistoryTrendItem(
+                id=item.get("id"),
+                query_id=item.get("query_id", ""),
+                stock_code=item.get("stock_code", ""),
+                stock_name=item.get("stock_name"),
+                created_at=item.get("created_at"),
+                analysis_result=item.get("analysis_result"),
+                sentiment_score=item.get("sentiment_score"),
+                operation_advice=item.get("operation_advice"),
+                trend_prediction=item.get("trend_prediction"),
+                change_pct=item.get("change_pct"),
+                volume_ratio=item.get("volume_ratio"),
+                turnover_rate=item.get("turnover_rate"),
+            )
+            for item in result.get("items", [])
+        ]
+        return HistoryTrendResponse(
+            stock_code=result.get("stock_code", stock_code),
+            total=result.get("total", len(items)),
+            items=items,
+        )
+    except Exception as e:
+        logger.error(f"查询历史趋势失败: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "internal_error",
+                "message": f"查询历史趋势失败: {str(e)}",
+            },
         )
 
 

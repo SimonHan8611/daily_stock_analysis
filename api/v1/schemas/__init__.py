@@ -24,6 +24,8 @@ from api.v1.schemas.analysis import (
 from api.v1.schemas.history import (
     HistoryItem,
     HistoryListResponse,
+    HistoryTrendItem,
+    HistoryTrendResponse,
     DeleteHistoryRequest,
     DeleteHistoryResponse,
     NewsIntelItem,
@@ -107,6 +109,8 @@ __all__ = [
     # history
     "HistoryItem",
     "HistoryListResponse",
+    "HistoryTrendItem",
+    "HistoryTrendResponse",
     "DeleteHistoryRequest",
     "DeleteHistoryResponse",
     "NewsIntelItem",

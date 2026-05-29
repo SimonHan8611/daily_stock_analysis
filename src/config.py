@@ -818,6 +818,11 @@ class Config:
     schedule_time: str = "18:00"              # 每日推送时间（HH:MM 格式）
     schedule_run_immediately: bool = True     # 启动时是否立即执行一次
     run_immediately: bool = True              # 启动时是否立即执行一次（非定时模式）
+    auto_history_analysis_enabled: bool = False  # 是否启用历史股票每日自动分析
+    auto_history_analysis_time: str = "14:45"     # 历史股票每日自动分析时间（HH:MM）
+    auto_history_analysis_limit: int = 20        # 每日最多从最近历史记录中取多少只股票
+    auto_history_analysis_report_type: str = "detailed"  # 自动分析报告类型
+    auto_history_analysis_notify: bool = False    # 自动历史分析是否发送通知
     market_review_enabled: bool = True        # 是否启用大盘复盘
     # 大盘复盘市场区域：cn(A股)、us(美股)、both(两者)，us 适合仅关注美股的用户
     market_review_region: str = "cn"
@@ -1495,6 +1500,40 @@ class Config:
             schedule_time=(schedule_time_value or '18:00').strip() or '18:00',
             schedule_run_immediately=schedule_run_immediately,
             run_immediately=legacy_run_immediately,
+            auto_history_analysis_enabled=cls._resolve_env_value(
+                'AUTO_HISTORY_ANALYSIS_ENABLED',
+                default='false',
+                prefer_env_file=True,
+            ).lower() == 'true',
+            auto_history_analysis_time=(
+                cls._resolve_env_value(
+                    'AUTO_HISTORY_ANALYSIS_TIME',
+                    default='14:45',
+                    prefer_env_file=True,
+                ) or '14:45'
+            ).strip() or '14:45',
+            auto_history_analysis_limit=parse_env_int(
+                cls._resolve_env_value(
+                    'AUTO_HISTORY_ANALYSIS_LIMIT',
+                    default='20',
+                    prefer_env_file=True,
+                ),
+                20,
+                field_name='AUTO_HISTORY_ANALYSIS_LIMIT',
+                minimum=1,
+            ),
+            auto_history_analysis_report_type=(
+                cls._resolve_env_value(
+                    'AUTO_HISTORY_ANALYSIS_REPORT_TYPE',
+                    default='detailed',
+                    prefer_env_file=True,
+                ) or 'detailed'
+            ).strip() or 'detailed',
+            auto_history_analysis_notify=cls._resolve_env_value(
+                'AUTO_HISTORY_ANALYSIS_NOTIFY',
+                default='false',
+                prefer_env_file=True,
+            ).lower() == 'true',
             market_review_enabled=os.getenv('MARKET_REVIEW_ENABLED', 'true').lower() == 'true',
             market_review_region=cls._parse_market_review_region(
                 os.getenv('MARKET_REVIEW_REGION', 'cn')

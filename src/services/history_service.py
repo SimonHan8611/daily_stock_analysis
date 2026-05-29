@@ -134,6 +134,152 @@ class HistoryService:
             logger.error(f"查询历史列表失败: {e}", exc_info=True)
             return {"total": 0, "items": []}
 
+    @staticmethod
+    def _safe_metric_number(value: Any) -> Optional[float]:
+        """Coerce metrics saved as number/string/percent text to float."""
+        if value is None:
+            return None
+        try:
+            if isinstance(value, str):
+                text = value.strip()
+                if not text or text.upper() in {"N/A", "NA", "--", "-"}:
+                    return None
+                if text.endswith("%"):
+                    text = text[:-1].strip()
+                return float(text)
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
+    def _extract_history_market_metrics(
+        cls,
+        context_snapshot: Any,
+        raw_result: Any,
+    ) -> Dict[str, Optional[float]]:
+        """Extract point-in-time market metrics from saved analysis payloads."""
+        candidates: List[Dict[str, Any]] = []
+        if isinstance(context_snapshot, dict):
+            enhanced_context = context_snapshot.get("enhanced_context")
+            if isinstance(enhanced_context, dict):
+                realtime = enhanced_context.get("realtime")
+                if isinstance(realtime, dict):
+                    candidates.append(realtime)
+
+                volume_analysis = enhanced_context.get("volume_analysis")
+                if isinstance(volume_analysis, dict):
+                    candidates.append(volume_analysis)
+
+            realtime_quote_raw = context_snapshot.get("realtime_quote_raw")
+            if isinstance(realtime_quote_raw, dict):
+                candidates.append(realtime_quote_raw)
+
+        if isinstance(raw_result, dict):
+            for key in ("realtime", "realtime_quote", "market_data", "volume_analysis"):
+                value = raw_result.get(key)
+                if isinstance(value, dict):
+                    candidates.append(value)
+
+        metrics = {
+            "change_pct": None,
+            "volume_ratio": None,
+            "turnover_rate": None,
+        }
+        aliases = {
+            "change_pct": ("change_pct", "pct_chg", "change_percent"),
+            "volume_ratio": ("volume_ratio", "vol_ratio"),
+            "turnover_rate": ("turnover_rate", "turnover"),
+        }
+        for metric, keys in aliases.items():
+            for candidate in candidates:
+                for key in keys:
+                    value = cls._safe_metric_number(candidate.get(key))
+                    if value is not None:
+                        metrics[metric] = value
+                        break
+                if metrics[metric] is not None:
+                    break
+        return metrics
+
+    @staticmethod
+    def _build_history_analysis_result(
+        operation_advice: Optional[str],
+        trend_prediction: Optional[str],
+    ) -> Optional[str]:
+        advice = (operation_advice or "").strip()
+        trend = (trend_prediction or "").strip()
+        if advice and trend and trend not in advice:
+            return f"{advice}({trend})"
+        return advice or trend or None
+
+    def get_history_trend(self, stock_code: str, limit: int = 20) -> Dict[str, Any]:
+        """
+        Get compact trend rows for a stock's historical analysis records.
+
+        The returned rows are optimized for the dashboard trend table and include
+        only the stable summary fields plus best-effort point-in-time market metrics.
+        """
+        try:
+            records = self.db.get_analysis_history(
+                code=stock_code,
+                days=3650,
+                limit=limit,
+            )
+            items: List[Dict[str, Any]] = []
+            for record in records:
+                raw_result = parse_json_field(record.raw_result)
+                context_snapshot = None
+                if record.context_snapshot:
+                    try:
+                        context_snapshot = json.loads(record.context_snapshot)
+                    except json.JSONDecodeError:
+                        context_snapshot = None
+
+                report_language = normalize_report_language(
+                    (raw_result or {}).get("report_language")
+                    if isinstance(raw_result, dict)
+                    else None
+                )
+                operation_advice = localize_operation_advice(
+                    record.operation_advice,
+                    report_language,
+                )
+                trend_prediction = localize_trend_prediction(
+                    record.trend_prediction,
+                    report_language,
+                )
+                metrics = self._extract_history_market_metrics(
+                    context_snapshot,
+                    raw_result,
+                )
+
+                items.append({
+                    "id": record.id,
+                    "query_id": record.query_id,
+                    "stock_code": record.code,
+                    "stock_name": record.name,
+                    "created_at": record.created_at.isoformat() if record.created_at else None,
+                    "analysis_result": self._build_history_analysis_result(
+                        operation_advice,
+                        trend_prediction,
+                    ),
+                    "sentiment_score": record.sentiment_score,
+                    "operation_advice": operation_advice,
+                    "trend_prediction": trend_prediction,
+                    "change_pct": metrics.get("change_pct"),
+                    "volume_ratio": metrics.get("volume_ratio"),
+                    "turnover_rate": metrics.get("turnover_rate"),
+                })
+
+            return {
+                "stock_code": stock_code,
+                "total": len(items),
+                "items": items,
+            }
+        except Exception as e:
+            logger.error(f"查询历史趋势失败: {e}", exc_info=True)
+            return {"stock_code": stock_code, "total": 0, "items": []}
+
     def _resolve_record(self, record_id: str):
         """
         Resolve a record_id parameter to an AnalysisHistory object.

@@ -119,11 +119,27 @@ from src.services.system_config_service import SystemConfigService
 async def app_lifespan(app: FastAPI):
     """Initialize and release shared services for the app lifecycle."""
     app.state.system_config_service = SystemConfigService()
+    app.state.history_auto_analysis_service = None
+    try:
+        from src.config import get_config
+        from src.services.history_auto_analysis_service import HistoryAutoAnalysisService
+
+        config = get_config()
+        if getattr(config, "auto_history_analysis_enabled", False):
+            app.state.history_auto_analysis_service = HistoryAutoAnalysisService(config=config)
+            app.state.history_auto_analysis_service.start()
+    except Exception as exc:
+        logger.warning("启动历史股票自动分析调度器失败: %s", exc)
     try:
         yield
     finally:
+        service = getattr(app.state, "history_auto_analysis_service", None)
+        if service is not None:
+            await service.stop()
         if hasattr(app.state, "system_config_service"):
             delattr(app.state, "system_config_service")
+        if hasattr(app.state, "history_auto_analysis_service"):
+            delattr(app.state, "history_auto_analysis_service")
 
 
 def create_app(static_dir: Optional[Path] = None) -> FastAPI:

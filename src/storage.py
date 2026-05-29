@@ -1412,6 +1412,60 @@ class DatabaseManager:
             ).scalars().all()
 
             return list(results)
+
+    def get_distinct_history_stocks(self, limit: int = 20) -> List[Dict[str, Optional[str]]]:
+        """
+        Return distinct stocks that have historical analysis records.
+
+        The list is ordered by the latest analysis time of each stock, newest first.
+        """
+        with self.get_session() as session:
+            subquery = (
+                select(
+                    AnalysisHistory.code.label("code"),
+                    func.max(AnalysisHistory.created_at).label("latest_created_at"),
+                )
+                .where(AnalysisHistory.code.is_not(None))
+                .group_by(AnalysisHistory.code)
+                .subquery()
+            )
+            rows = session.execute(
+                select(AnalysisHistory.code, AnalysisHistory.name)
+                .join(
+                    subquery,
+                    and_(
+                        AnalysisHistory.code == subquery.c.code,
+                        AnalysisHistory.created_at == subquery.c.latest_created_at,
+                    ),
+                )
+                .order_by(desc(subquery.c.latest_created_at))
+                .limit(limit)
+            ).all()
+
+            stocks: List[Dict[str, Optional[str]]] = []
+            seen = set()
+            for code, name in rows:
+                if not code or code in seen:
+                    continue
+                stocks.append({"code": code, "name": name})
+                seen.add(code)
+            return stocks
+
+    def has_analysis_history_on_date(self, code: str, target_date: date) -> bool:
+        """Return whether a stock already has an analysis record on target_date."""
+        start = datetime.combine(target_date, datetime.min.time())
+        end = start + timedelta(days=1)
+        with self.get_session() as session:
+            count = session.execute(
+                select(func.count(AnalysisHistory.id)).where(
+                    and_(
+                        AnalysisHistory.code == code,
+                        AnalysisHistory.created_at >= start,
+                        AnalysisHistory.created_at < end,
+                    )
+                )
+            ).scalar()
+            return bool(count)
     
     def get_analysis_history_paginated(
         self,

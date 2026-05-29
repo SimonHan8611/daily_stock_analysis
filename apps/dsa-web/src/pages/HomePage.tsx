@@ -15,6 +15,7 @@ import {
 } from "@mantine/core";
 import {
   Bell,
+  BarChart3,
   CheckCircle2,
   FileText,
   Menu,
@@ -30,11 +31,12 @@ import {
   Button,
   Checkbox,
   ConfirmDialog,
+  Drawer,
   EmptyState,
   InlineAlert,
 } from "../components/common";
 import { DashboardStateBlock } from "../components/dashboard";
-import { HistoryList } from "../components/history";
+import { HistoryList, HistoryTrendTable } from "../components/history";
 import { ReportMarkdown, ReportSummary } from "../components/report";
 import { StockAutocomplete } from "../components/StockAutocomplete";
 import { TaskPanel } from "../components/tasks";
@@ -75,6 +77,7 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [historyTrendDrawerOpen, setHistoryTrendDrawerOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
@@ -245,6 +248,7 @@ const HomePage: React.FC = () => {
     ["三安光电（002050.SZ）发布业绩公告", "14:32", "blue"],
     ["策略回测任务已完成，点击查看结果", "14:10", "green"],
   ];
+  const isDrawerOpen = markdownDrawerOpen || historyTrendDrawerOpen;
 
   return (
     <div
@@ -322,6 +326,7 @@ const HomePage: React.FC = () => {
                       offset={4}
                       inline
                       withBorder
+                      disabled={isDrawerOpen}
                     >
                       <ActionIcon
                         className="border border-[hsl(220_18%_91%)] bg-[hsl(220_20%_99%)] text-[hsl(220_20%_34%)]"
@@ -536,6 +541,19 @@ const HomePage: React.FC = () => {
                   <Button
                     variant="home-action-ai"
                     size="sm"
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      setHistoryTrendDrawerOpen(true);
+                    }}
+                    disabled={!selectedReport}
+                    className="h-8 px-2.5 text-xs"
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />
+                    历史分析
+                  </Button>
+                  <Button
+                    variant="home-action-ai"
+                    size="sm"
                     disabled={
                       selectedReport ? isAnalyzing : !query || isAnalyzing
                     }
@@ -562,7 +580,10 @@ const HomePage: React.FC = () => {
                   <Button
                     variant="home-action-report"
                     size="sm"
-                    onClick={openMarkdownDrawer}
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      openMarkdownDrawer();
+                    }}
                     disabled={!selectedReport}
                     className="h-8 px-2.5 text-xs"
                   >
@@ -608,6 +629,22 @@ const HomePage: React.FC = () => {
           reportLanguage={reportLanguage}
           onClose={closeMarkdownDrawer}
         />
+      ) : null}
+
+      {selectedReport ? (
+        <Drawer
+          isOpen={historyTrendDrawerOpen}
+          onClose={() => setHistoryTrendDrawerOpen(false)}
+          title={`${selectedReport.meta.stockName || selectedReport.meta.stockCode} 历史分析`}
+          width="max-w-3xl"
+          side="right"
+        >
+          <HistoryTrendTable
+            stockCode={selectedReport.meta.stockCode}
+            stockName={selectedReport.meta.stockName}
+            className="mt-0"
+          />
+        </Drawer>
       ) : null}
 
       <ConfirmDialog
