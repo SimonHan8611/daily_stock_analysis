@@ -3,18 +3,123 @@
 
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from tests.litellm_stub import ensure_litellm_stub
+
+ensure_litellm_stub()
 
 from src.config import (
+    ANSPIRE_LLM_BASE_URL_DEFAULT,
+    ANSPIRE_LLM_MODEL_DEFAULT,
     Config,
     get_effective_agent_models_to_try,
     get_effective_agent_primary_model,
     get_fixed_litellm_temperature,
     normalize_litellm_temperature,
 )
+from src.llm.generation_params import (
+    apply_litellm_generation_params,
+    resolve_litellm_temperature_directive,
+)
+from src.services.system_config_service import SystemConfigService
 
 
 class LLMChannelConfigTestCase(unittest.TestCase):
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_anspire_key_enables_openai_compatible_legacy_model(self, _mock_parse_yaml, _mock_setup_env) -> None:
+        env = {
+            "ANSPIRE_API_KEYS": "sk-anspire-test-value",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.anspire_api_keys, ["sk-anspire-test-value"])
+        self.assertEqual(config.openai_api_keys, ["sk-anspire-test-value"])
+        self.assertEqual(config.openai_base_url, ANSPIRE_LLM_BASE_URL_DEFAULT)
+        self.assertEqual(config.litellm_model, f"openai/{ANSPIRE_LLM_MODEL_DEFAULT}")
+        self.assertEqual(config.llm_models_source, "legacy_env")
+        params = config.llm_model_list[0]["litellm_params"]
+        self.assertEqual(params["model"], "__legacy_openai__")
+        self.assertEqual(params["api_base"], ANSPIRE_LLM_BASE_URL_DEFAULT)
+
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_anspire_legacy_overrides_stale_openai_base_url(self, _mock_parse_yaml, _mock_setup_env) -> None:
+        env = {
+            "ANSPIRE_API_KEYS": "sk-anspire-test-value",
+            "OPENAI_BASE_URL": "https://stale-openai-compatible.example/v1",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.openai_api_keys, ["sk-anspire-test-value"])
+        self.assertEqual(config.openai_base_url, ANSPIRE_LLM_BASE_URL_DEFAULT)
+        params = config.llm_model_list[0]["litellm_params"]
+        self.assertEqual(params["api_base"], ANSPIRE_LLM_BASE_URL_DEFAULT)
+
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_anspire_channel_reuses_shared_key_and_defaults(self, _mock_parse_yaml, _mock_setup_env) -> None:
+        env = {
+            "LLM_CHANNELS": "anspire",
+            "ANSPIRE_API_KEYS": "sk-anspire-test-value",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.llm_models_source, "llm_channels")
+        self.assertEqual(config.llm_channels[0]["protocol"], "openai")
+        self.assertEqual(config.llm_channels[0]["api_keys"], ["sk-anspire-test-value"])
+        self.assertEqual(config.llm_channels[0]["models"], [f"openai/{ANSPIRE_LLM_MODEL_DEFAULT}"])
+        params = config.llm_model_list[0]["litellm_params"]
+        self.assertEqual(params["api_base"], ANSPIRE_LLM_BASE_URL_DEFAULT)
+
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_blank_anspire_channel_enabled_uses_shared_disable_flag(
+        self,
+        _mock_parse_yaml,
+        _mock_setup_env,
+    ) -> None:
+        env = {
+            "LLM_CHANNELS": "anspire",
+            "LLM_ANSPIRE_ENABLED": "   ",
+            "ANSPIRE_LLM_ENABLED": "false",
+            "ANSPIRE_API_KEYS": "sk-anspire-test-value",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.openai_api_keys, [])
+        self.assertEqual(config.llm_channels, [])
+        self.assertEqual(config.llm_model_list, [])
+
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_disabled_anspire_channel_does_not_fall_back_to_legacy(
+        self,
+        _mock_parse_yaml,
+        _mock_setup_env,
+    ) -> None:
+        env = {
+            "LLM_CHANNELS": "anspire",
+            "LLM_ANSPIRE_ENABLED": "false",
+            "ANSPIRE_API_KEYS": "sk-anspire-test-value",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.openai_api_keys, [])
+        self.assertEqual(config.llm_channels, [])
+        self.assertEqual(config.llm_model_list, [])
+
     @patch("src.config.setup_env")
     @patch.object(Config, "_parse_litellm_yaml", return_value=[])
     def test_protocol_prefixes_bare_model_names(self, _mock_parse_yaml, _mock_setup_env) -> None:
@@ -133,7 +238,7 @@ class LLMChannelConfigTestCase(unittest.TestCase):
         with patch.dict(os.environ, env, clear=True):
             config = Config._load_from_env()
 
-        self.assertEqual(config.litellm_model, "gemini/gemini-3-flash-preview")
+        self.assertEqual(config.litellm_model, "gemini/gemini-3.1-pro-preview")
         self.assertAlmostEqual(config.llm_temperature, 0.15)
 
     @patch("src.config.setup_env")
@@ -383,6 +488,38 @@ class LLMChannelConfigTestCase(unittest.TestCase):
             0.6,
         )
 
+    def test_gpt5_family_temperature_is_omitted_at_request_build_time(self) -> None:
+        directive = resolve_litellm_temperature_directive("openai/gpt5.5-ferr")
+        self.assertTrue(directive.omit_temperature)
+
+        call_kwargs = apply_litellm_generation_params(
+            {"model": "openai/gpt5.5-ferr", "messages": [], "temperature": 0.2},
+            "openai/gpt5.5-ferr",
+            0.2,
+        )
+
+        self.assertNotIn("temperature", call_kwargs)
+        self.assertAlmostEqual(normalize_litellm_temperature("openai/gpt5.5-ferr", 0.2), 0.2)
+
+    def test_gpt5_temperature_directive_resolves_litellm_yaml_alias(self) -> None:
+        model_list = [
+            {
+                "model_name": "future_router",
+                "litellm_params": {"model": "openai/gpt-5.5"},
+            }
+        ]
+
+        directive = resolve_litellm_temperature_directive("future_router", model_list=model_list)
+        call_kwargs = apply_litellm_generation_params(
+            {"model": "future_router", "messages": []},
+            "future_router",
+            0.2,
+            model_list=model_list,
+        )
+
+        self.assertTrue(directive.omit_temperature)
+        self.assertNotIn("temperature", call_kwargs)
+
     @patch("src.config.setup_env")
     @patch.object(Config, "_parse_litellm_yaml", return_value=[])
     def test_local_openai_compatible_channel_defaults_to_openai_protocol(self, _mock_parse_yaml, _mock_setup_env) -> None:
@@ -496,6 +633,134 @@ class LLMChannelConfigTestCase(unittest.TestCase):
         self.assertEqual(
             get_effective_agent_models_to_try(config),
             ["gpt4o", "openai/gpt-4o-mini"],
+        )
+
+    def test_llm_base_url_rejects_ambiguous_parser_syntax(self) -> None:
+        invalid_urls = [
+            "https://127.0.0.1:6666\\@1.1.1.1/",
+            "https://user@example.com/v1",
+            "https://api.example.com/v1 models",
+            "https://api.example.com/v1\tmodels",
+            "https://api.example.com/v1\x7fmodels",
+        ]
+
+        for value in invalid_urls:
+            with self.subTest(value=repr(value)):
+                self.assertFalse(SystemConfigService._is_valid_llm_base_url(value))
+
+    def test_llm_base_url_rejects_legacy_numeric_ipv4_aliases(self) -> None:
+        invalid_urls = [
+            "http://2852039166/v1",
+            "http://0xa9fea9fe/v1",
+            "http://025177524776/v1",
+            "http://0251.0376.0251.0376/v1",
+            "http://169.254.0xa9fe/v1",
+        ]
+
+        for value in invalid_urls:
+            with self.subTest(value=value):
+                self.assertFalse(SystemConfigService._is_valid_llm_base_url(value))
+                self.assertFalse(SystemConfigService._is_safe_base_url(value))
+
+    def test_llm_base_url_blocks_unicode_idna_metadata_aliases(self) -> None:
+        restricted_urls = [
+            "http://169。254。169。254/v1",
+            "http://①⑥⑨.254.169.254/v1",
+            "http://metadata。google。internal/v1",
+            "http://ｍetadata.google.internal/v1",
+        ]
+
+        for value in restricted_urls:
+            with self.subTest(value=value):
+                self.assertTrue(SystemConfigService._is_valid_llm_base_url(value))
+                self.assertFalse(SystemConfigService._is_safe_base_url(value))
+
+    def test_llm_base_url_accepts_common_openai_compatible_and_local_shapes(self) -> None:
+        valid_urls = [
+            "https://api.openai.com/v1",
+            "https://api.deepseek.com/v1",
+            "https://api.siliconflow.cn/v1",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "http://127.0.0.1:11434",
+            "http://127.0.0.1:11434/v1",
+        ]
+
+        for value in valid_urls:
+            with self.subTest(value=value):
+                self.assertTrue(SystemConfigService._is_valid_llm_base_url(value), msg=value)
+                self.assertTrue(SystemConfigService._is_safe_base_url(value), msg=value)
+
+    @patch("src.services.system_config_service.requests.get")
+    def test_discover_llm_channel_models_blocks_parser_differential_url(self, mock_get) -> None:
+        service = SystemConfigService(manager=Mock())
+
+        payload = service.discover_llm_channel_models(
+            name="primary",
+            protocol="openai",
+            base_url="https://127.0.0.1:6666\\@1.1.1.1/",
+            api_key="sk-test-value",
+        )
+
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error_code"], "invalid_config")
+        self.assertEqual(payload["details"]["reason"], "invalid_url")
+        mock_get.assert_not_called()
+
+    @patch("src.services.system_config_service.requests.get")
+    def test_discover_llm_channel_models_blocks_unicode_metadata_alias(self, mock_get) -> None:
+        service = SystemConfigService(manager=Mock())
+
+        for value in (
+            "http://169。254。169。254/v1",
+            "http://①⑥⑨.254.169.254/v1",
+        ):
+            with self.subTest(value=value):
+                payload = service.discover_llm_channel_models(
+                    name="primary",
+                    protocol="openai",
+                    base_url=value,
+                    api_key="sk-test-value",
+                )
+
+                self.assertFalse(payload["success"])
+                self.assertEqual(payload["error_code"], "invalid_config")
+                self.assertEqual(payload["details"]["reason"], "ssrf_blocked")
+                mock_get.assert_not_called()
+
+    @patch("src.services.system_config_service.requests.get")
+    def test_discover_llm_channel_models_blocks_numeric_metadata_alias(self, mock_get) -> None:
+        service = SystemConfigService(manager=Mock())
+
+        payload = service.discover_llm_channel_models(
+            name="primary",
+            protocol="openai",
+            base_url="http://2852039166/v1",
+            api_key="sk-test-value",
+        )
+
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error_code"], "invalid_config")
+        self.assertEqual(payload["details"]["reason"], "invalid_url")
+        mock_get.assert_not_called()
+
+    def test_llm_models_url_rechecks_restricted_and_valid_urls(self) -> None:
+        restricted_urls = [
+            "http://169.254.169.254/v1",
+            "http://[::ffff:169.254.169.254]/v1",
+            "http://[::ffff:100.100.100.200]/v1",
+        ]
+        for value in restricted_urls:
+            with self.subTest(value=value):
+                self.assertTrue(SystemConfigService._is_valid_llm_base_url(value))
+                self.assertFalse(SystemConfigService._is_safe_base_url(value))
+                with self.assertRaises(ValueError):
+                    SystemConfigService._build_llm_models_url(value)
+
+        self.assertEqual(
+            SystemConfigService._build_llm_models_url(
+                "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions?api-version=1#frag"
+            ),
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
         )
 
 

@@ -9,6 +9,7 @@ import type {
   AnalysisReport,
   NewsIntelResponse,
   NewsIntelItem,
+  RunDiagnosticSummary,
 } from '../types/analysis';
 
 // ============ API 接口 ============
@@ -95,6 +96,15 @@ export const historyApi = {
   getMarkdown: async (recordId: number): Promise<string> => {
     const response = await apiClient.get<{ content: string }>(`/api/v1/history/${recordId}/markdown`);
     return response.data.content;
+  },
+
+  /**
+   * 获取历史报告运行诊断摘要
+   * @param recordId 分析历史记录主键 ID
+   */
+  getDiagnostics: async (recordId: number): Promise<RunDiagnosticSummary> => {
+    const response = await apiClient.get<Record<string, unknown>>(`/api/v1/history/${recordId}/diagnostics`);
+    return toCamelCase<RunDiagnosticSummary>(response.data);
   },
 
   /**

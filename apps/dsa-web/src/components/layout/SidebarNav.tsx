@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -12,14 +12,21 @@ import {
 } from "@mantine/core";
 import {
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   Home,
   LogOut,
   MessageSquareQuote,
   Repeat2,
+  Search,
   Settings2,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import {
+  ALPHASIFT_CONFIG_CHANGED_EVENT,
+  SYSTEM_CONFIG_CHANGED_EVENT,
+  alphasiftApi,
+} from "../../api/alphasift";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAgentChatStore } from "../../stores/agentChatStore";
 import { ConfirmDialog } from "../common/ConfirmDialog";
@@ -73,6 +80,20 @@ const NAV_ITEMS: NavItem[] = [
     section: "workspace",
   },
   {
+    key: "screening",
+    label: "AlphaSift 选股",
+    to: "/screening",
+    icon: Search,
+    section: "workspace",
+  },
+  {
+    key: "alerts",
+    label: "告警中心",
+    to: "/alerts",
+    icon: Bell,
+    section: "workspace",
+  },
+  {
     key: "settings",
     label: "系统设置",
     to: "/settings",
@@ -89,11 +110,43 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const location = useLocation();
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showAlphaSiftNav, setShowAlphaSiftNav] = useState(false);
 
-  const workspaceItems = NAV_ITEMS.filter(
+  useEffect(() => {
+    let active = true;
+
+    const refreshAlphaSiftStatus = async () => {
+      try {
+        const status = await alphasiftApi.getStatus();
+        if (active) {
+          setShowAlphaSiftNav(status.enabled);
+        }
+      } catch {
+        if (active) {
+          setShowAlphaSiftNav(false);
+        }
+      }
+    };
+
+    void refreshAlphaSiftStatus();
+    window.addEventListener(ALPHASIFT_CONFIG_CHANGED_EVENT, refreshAlphaSiftStatus);
+    window.addEventListener(SYSTEM_CONFIG_CHANGED_EVENT, refreshAlphaSiftStatus);
+
+    return () => {
+      active = false;
+      window.removeEventListener(ALPHASIFT_CONFIG_CHANGED_EVENT, refreshAlphaSiftStatus);
+      window.removeEventListener(SYSTEM_CONFIG_CHANGED_EVENT, refreshAlphaSiftStatus);
+    };
+  }, []);
+
+  const navItems = showAlphaSiftNav
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter((item) => item.key !== "screening");
+
+  const workspaceItems = navItems.filter(
     (item) => item.section === "workspace",
   );
-  const systemItems = NAV_ITEMS.filter((item) => item.section === "system");
+  const systemItems = navItems.filter((item) => item.section === "system");
 
   const isItemActive = (item: NavItem) => {
     if (item.exact || item.to === "/") {

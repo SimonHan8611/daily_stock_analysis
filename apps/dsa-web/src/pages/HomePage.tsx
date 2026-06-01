@@ -112,6 +112,7 @@ const HomePage: React.FC = () => {
     syncTaskCreated,
     syncTaskUpdated,
     syncTaskFailed,
+    refreshActiveTasks,
     removeTask,
     openMarkdownDrawer,
     closeMarkdownDrawer,
@@ -130,6 +131,7 @@ const HomePage: React.FC = () => {
   useDashboardLifecycle({
     loadInitialHistory,
     refreshHistory,
+    refreshActiveTasks,
     syncTaskCreated,
     syncTaskUpdated,
     syncTaskFailed,
